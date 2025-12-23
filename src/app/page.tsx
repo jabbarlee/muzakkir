@@ -13,12 +13,12 @@ export default function Home() {
 
         {/* Title */}
         <h1 className="font-serif text-4xl sm:text-5xl font-semibold text-foreground mb-4 tracking-tight">
-          The Words
+          Sözler
         </h1>
         <p className="text-xl text-muted-foreground mb-2 font-serif italic">
-          Sözler
+          Risale-i Nur Külliyatı
         </p>
-        <p className="text-muted-foreground mb-10">by Bediüzzaman Said Nursi</p>
+        <p className="text-muted-foreground mb-10">Bediüzzaman Said Nursi</p>
 
         {/* Description */}
         <p className="text-foreground/80 leading-relaxed mb-10">
