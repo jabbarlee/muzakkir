@@ -33,9 +33,9 @@ function ChapterList({
       <div className="px-4 py-3 border-b border-sidebar-border flex-shrink-0">
         <div className="flex items-center gap-2 text-sidebar-primary">
           <BookOpen className="size-5" />
-          <span className="font-semibold tracking-tight">The Words</span>
+          <span className="font-semibold tracking-tight">Sözler</span>
         </div>
-        <p className="text-xs text-muted-foreground mt-1">Sözler</p>
+        <p className="text-xs text-muted-foreground mt-1">Risale-i Nur Külliyatı</p>
       </div>
       <div className="flex-1 overflow-y-auto">
         <nav className="p-2">
@@ -193,7 +193,7 @@ export default function ReadPage() {
 
               {/* Title */}
               <h1 className="font-serif text-lg font-semibold tracking-tight text-foreground">
-                The Words
+                Sözler
               </h1>
             </div>
 
