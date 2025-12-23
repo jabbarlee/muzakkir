@@ -5,6 +5,7 @@
 
 @theme inline {
   --font-serif: var(--font-serif);
+  --font-arabic: var(--font-arabic);
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -45,10 +46,13 @@
   --color-sidebar-ring: var(--sidebar-ring);
   --color-paper: var(--paper);
   --color-paper-foreground: var(--paper-foreground);
+  --color-crimson: var(--crimson);
 }
 
 :root {
   --radius: 0.625rem;
+  /* Crimson color for Arabic text */
+  --crimson: oklch(0.45 0.18 15);
   /* Warm paper-like colors for reading */
   --paper: oklch(0.975 0.005 85);
   --paper-foreground: oklch(0.25 0.02 50);
@@ -86,6 +90,7 @@
 }
 
 .dark {
+  --crimson: oklch(0.65 0.2 15);
   --paper: oklch(0.18 0.01 50);
   --paper-foreground: oklch(0.92 0.01 80);
   --background: oklch(0.15 0.008 50);
@@ -153,4 +158,114 @@
   font-family: var(--font-serif), Georgia, "Times New Roman", serif;
   font-weight: 600;
   letter-spacing: -0.01em;
+}
+
+/* Arabic text styling - Quranic verses */
+.arabic-verse {
+  font-family: var(--font-arabic), "Amiri", "Traditional Arabic", "Scheherazade", serif;
+  direction: rtl;
+  text-align: center;
+  font-size: 1.75rem;
+  line-height: 2;
+  color: var(--crimson);
+  margin: 2rem 0;
+  padding: 1.5rem;
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    oklch(0.45 0.12 35 / 0.03),
+    transparent
+  );
+  border-radius: 0.5rem;
+  font-weight: 400;
+}
+
+.dark .arabic-verse {
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    oklch(0.75 0.1 45 / 0.05),
+    transparent
+  );
+}
+
+/* Inline Arabic text */
+.arabic-inline {
+  font-family: var(--font-arabic), "Amiri", "Traditional Arabic", serif;
+  direction: rtl;
+  font-size: 1.3em;
+  color: var(--crimson);
+  unicode-bidi: isolate;
+}
+
+/* Chapter content styling */
+.chapter-content {
+  font-family: var(--font-serif), Georgia, "Times New Roman", serif;
+}
+
+.chapter-content p {
+  margin-bottom: 1.5rem;
+  line-height: 1.9;
+  text-indent: 1.5rem;
+}
+
+.chapter-content p:first-of-type {
+  text-indent: 0;
+}
+
+.chapter-content h1,
+.chapter-content h2,
+.chapter-content h3,
+.chapter-content h4 {
+  font-family: var(--font-serif), Georgia, "Times New Roman", serif;
+  font-weight: 600;
+  margin-top: 2rem;
+  margin-bottom: 1rem;
+  color: var(--paper-foreground);
+}
+
+.chapter-content h1 {
+  font-size: 1.75rem;
+}
+
+.chapter-content h2 {
+  font-size: 1.5rem;
+}
+
+.chapter-content h3 {
+  font-size: 1.25rem;
+}
+
+.chapter-content blockquote {
+  border-left: 3px solid var(--primary);
+  padding-left: 1.5rem;
+  margin: 1.5rem 0;
+  font-style: italic;
+  color: var(--paper-foreground);
+  opacity: 0.9;
+}
+
+.chapter-content strong {
+  font-weight: 600;
+  color: var(--paper-foreground);
+}
+
+.chapter-content em {
+  font-style: italic;
+}
+
+.chapter-content ul,
+.chapter-content ol {
+  margin: 1.5rem 0;
+  padding-left: 2rem;
+}
+
+.chapter-content li {
+  margin-bottom: 0.5rem;
+  line-height: 1.8;
+}
+
+/* Remove indent from first paragraph after Arabic verse */
+.arabic-verse + p {
+  text-indent: 0 !important;
 }

@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Menu, BookOpen, ChevronRight, Loader2 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
+import rehypeRaw from "rehype-raw";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
@@ -13,6 +14,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { getChapters, getChapterContent } from "@/actions/documents";
+import { processContent } from "@/lib/content-processor";
 
 function ChapterList({
   chapters,
@@ -85,10 +87,13 @@ function ChapterList({
 export default function ReadPage() {
   const [chapters, setChapters] = useState<string[]>([]);
   const [selectedChapter, setSelectedChapter] = useState<string | null>(null);
-  const [content, setContent] = useState<string>("");
+  const [rawContent, setRawContent] = useState<string>("");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isLoadingChapters, setIsLoadingChapters] = useState(true);
   const [isLoadingContent, setIsLoadingContent] = useState(false);
+
+  // Process content with memoization
+  const content = useMemo(() => processContent(rawContent), [rawContent]);
 
   // Fetch chapters on mount
   useEffect(() => {
@@ -118,10 +123,12 @@ export default function ReadPage() {
       try {
         setIsLoadingContent(true);
         const contentData = await getChapterContent(selectedChapter);
-        setContent(contentData);
+        setRawContent(contentData);
+        // Scroll to top when chapter changes
+        window.scrollTo({ top: 0, behavior: "smooth" });
       } catch (error) {
         console.error("Failed to fetch content:", error);
-        setContent("");
+        setRawContent("");
       } finally {
         setIsLoadingContent(false);
       }
@@ -225,15 +232,86 @@ export default function ReadPage() {
               </header>
 
               {/* Chapter Content */}
-              <div className="prose-book text-paper-foreground/90">
+              <div className="chapter-content text-paper-foreground/90">
                 {isLoadingContent ? (
                   <div className="flex items-center justify-center py-16">
                     <Loader2 className="size-8 animate-spin text-muted-foreground" />
                   </div>
                 ) : content ? (
-                  <div className="prose prose-stone prose-lg max-w-none prose-headings:font-serif prose-headings:text-paper-foreground prose-p:text-paper-foreground/90 prose-strong:text-paper-foreground prose-blockquote:text-paper-foreground/80 prose-blockquote:border-primary/30">
-                    <ReactMarkdown>{content}</ReactMarkdown>
-                  </div>
+                  <ReactMarkdown
+                    rehypePlugins={[rehypeRaw]}
+                    components={{
+                      // Paragraphs
+                      p: ({ children }) => (
+                        <p className="mb-6 leading-[1.9] text-paper-foreground/90">
+                          {children}
+                        </p>
+                      ),
+                      // Headings
+                      h1: ({ children }) => (
+                        <h1 className="font-serif text-2xl font-semibold mt-10 mb-5 text-paper-foreground">
+                          {children}
+                        </h1>
+                      ),
+                      h2: ({ children }) => (
+                        <h2 className="font-serif text-xl font-semibold mt-8 mb-4 text-paper-foreground">
+                          {children}
+                        </h2>
+                      ),
+                      h3: ({ children }) => (
+                        <h3 className="font-serif text-lg font-semibold mt-6 mb-3 text-paper-foreground">
+                          {children}
+                        </h3>
+                      ),
+                      // Blockquotes
+                      blockquote: ({ children }) => (
+                        <blockquote className="border-l-3 border-primary/50 pl-5 my-6 italic text-paper-foreground/85">
+                          {children}
+                        </blockquote>
+                      ),
+                      // Strong/Bold
+                      strong: ({ children }) => (
+                        <strong className="font-semibold text-paper-foreground">
+                          {children}
+                        </strong>
+                      ),
+                      // Emphasis
+                      em: ({ children }) => (
+                        <em className="italic">{children}</em>
+                      ),
+                      // Lists
+                      ul: ({ children }) => (
+                        <ul className="my-5 pl-6 space-y-2 list-disc">
+                          {children}
+                        </ul>
+                      ),
+                      ol: ({ children }) => (
+                        <ol className="my-5 pl-6 space-y-2 list-decimal">
+                          {children}
+                        </ol>
+                      ),
+                      li: ({ children }) => (
+                        <li className="leading-relaxed">{children}</li>
+                      ),
+                      // Handle div (for arabic-verse class)
+                      div: ({ className, children, ...props }) => {
+                        if (className?.includes("arabic-verse")) {
+                          return (
+                            <div className="arabic-verse" {...props}>
+                              {children}
+                            </div>
+                          );
+                        }
+                        return (
+                          <div className={className} {...props}>
+                            {children}
+                          </div>
+                        );
+                      },
+                    }}
+                  >
+                    {content}
+                  </ReactMarkdown>
                 ) : (
                   <p className="text-center text-muted-foreground py-16">
                     Select a chapter to start reading
