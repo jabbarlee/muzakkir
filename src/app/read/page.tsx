@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { Menu, BookOpen, ChevronRight, Loader2 } from "lucide-react";
+import { Menu, BookOpen, Loader2 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import rehypeRaw from "rehype-raw";
 import { Button } from "@/components/ui/button";
@@ -30,15 +30,15 @@ function ChapterList({
   isLoading: boolean;
 }) {
   return (
-    <div className="flex flex-col h-full">
-      <div className="px-4 py-3 border-b border-sidebar-border">
+    <div className="flex flex-col h-full overflow-hidden">
+      <div className="px-4 py-3 border-b border-sidebar-border flex-shrink-0">
         <div className="flex items-center gap-2 text-sidebar-primary">
           <BookOpen className="size-5" />
           <span className="font-semibold tracking-tight">The Words</span>
         </div>
         <p className="text-xs text-muted-foreground mt-1">Sözler</p>
       </div>
-      <ScrollArea className="flex-1">
+      <ScrollArea className="flex-1 h-full">
         <nav className="p-2">
           {isLoading ? (
             <div className="flex items-center justify-center py-8">
@@ -59,7 +59,6 @@ function ChapterList({
                 className={`
                   w-full text-left px-3 py-2.5 rounded-lg text-sm
                   transition-all duration-200 ease-out
-                  flex items-center gap-2 group
                   ${
                     selectedChapter === chapter
                       ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
@@ -67,14 +66,7 @@ function ChapterList({
                   }
                 `}
               >
-                <ChevronRight
-                  className={`size-3.5 transition-transform duration-200 flex-shrink-0 ${
-                    selectedChapter === chapter
-                      ? "text-sidebar-primary"
-                      : "text-muted-foreground group-hover:translate-x-0.5"
-                  }`}
-                />
-                <span className="truncate">{chapter}</span>
+                <span className="block truncate">{chapter}</span>
               </button>
             ))
           )}
@@ -159,7 +151,7 @@ export default function ReadPage() {
   return (
     <div className="min-h-screen bg-background">
       {/* Desktop Sidebar */}
-      <aside className="hidden lg:flex lg:fixed lg:inset-y-0 lg:left-0 lg:w-64 lg:flex-col bg-sidebar border-r border-sidebar-border">
+      <aside className="hidden lg:flex lg:fixed lg:inset-y-0 lg:left-0 lg:w-64 lg:flex-col bg-sidebar border-r border-sidebar-border overflow-hidden">
         <ChapterList
           chapters={chapters}
           selectedChapter={selectedChapter}
@@ -216,7 +208,7 @@ export default function ReadPage() {
         {/* Reading Area */}
         <main className="min-h-[calc(100vh-3.5rem)]">
           <div className="bg-paper">
-            <article className="max-w-2xl mx-auto px-6 sm:px-8 py-12 sm:py-16">
+            <article className="max-w-3xl mx-auto px-6 sm:px-10 py-12 sm:py-16">
               {/* Chapter Title */}
               <header className="mb-10 pb-8 border-b border-border/50">
                 {selectedChapter && (
@@ -243,7 +235,7 @@ export default function ReadPage() {
                     components={{
                       // Paragraphs
                       p: ({ children }) => (
-                        <p className="mb-6 leading-[1.9] text-paper-foreground/90">
+                        <p className="mb-6 text-[1.15rem] leading-[1.95] text-paper-foreground/90">
                           {children}
                         </p>
                       ),
