@@ -12,6 +12,11 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import {
+  AIChatPanel,
+  MobileAIChatSheet,
+  AIChatToggleButton,
+} from "@/components/ai-chat-panel";
 import { getChapters, getChapterContent } from "@/actions/documents";
 import { processContent } from "@/lib/content-processor";
 
@@ -30,12 +35,11 @@ function ChapterList({
 }) {
   return (
     <div className="flex flex-col h-full">
-      <div className="px-4 py-3 border-b border-sidebar-border flex-shrink-0">
+      <div className="px-4 border-b border-sidebar-border flex-shrink-0 h-14 flex items-center">
         <div className="flex items-center gap-2 text-sidebar-primary">
           <BookOpen className="size-5" />
           <span className="font-semibold tracking-tight">Sözler</span>
         </div>
-        <p className="text-xs text-muted-foreground mt-1">Risale-i Nur Külliyatı</p>
       </div>
       <div className="flex-1 overflow-y-auto">
         <nav className="p-2">
@@ -82,6 +86,10 @@ export default function ReadPage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isLoadingChapters, setIsLoadingChapters] = useState(true);
   const [isLoadingContent, setIsLoadingContent] = useState(false);
+
+  // AI Chat panel state
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [isMobileChatOpen, setIsMobileChatOpen] = useState(false);
 
   // Process content with memoization
   const content = useMemo(() => processContent(rawContent), [rawContent]);
@@ -160,18 +168,23 @@ export default function ReadPage() {
       </aside>
 
       {/* Main Content Area */}
-      <div className="lg:pl-64">
+      <div
+        className={`lg:pl-64 transition-all duration-300 ${
+          isChatOpen ? "lg:pr-96" : ""
+        }`}
+      >
         {/* Header */}
-        <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-sm border-b border-border">
-          <div className="flex items-center justify-between px-4 h-14 max-w-4xl mx-auto">
-            <div className="flex items-center gap-3">
+        <header className="sticky top-0 z-40 h-14 bg-background/80 backdrop-blur-sm border-b border-border">
+          <div className="flex items-center justify-between px-4 h-full">
+            {/* Left: Mobile Menu + Title */}
+            <div className="flex items-center gap-3 min-w-0">
               {/* Mobile Menu Button */}
               <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
                 <SheetTrigger asChild>
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="lg:hidden"
+                    className="lg:hidden flex-shrink-0"
                     aria-label="Open chapter menu"
                   >
                     <Menu className="size-5" />
@@ -192,15 +205,30 @@ export default function ReadPage() {
               </Sheet>
 
               {/* Title */}
-              <h1 className="font-serif text-lg font-semibold tracking-tight text-foreground">
+              <h1 className="font-serif text-lg font-semibold tracking-tight text-foreground whitespace-nowrap">
                 Sözler
               </h1>
             </div>
 
-            {/* Chapter indicator */}
-            <span className="text-sm text-muted-foreground hidden sm:block truncate max-w-[200px]">
+            {/* Center: Chapter indicator */}
+            <span className="text-sm text-muted-foreground hidden sm:block truncate max-w-[300px] text-center flex-1 px-4">
               {selectedChapter}
             </span>
+
+            {/* Right: AI Chat Toggle Buttons */}
+            <div className="flex items-center gap-2 flex-shrink-0">
+              {/* AI Chat Toggle Button - Desktop */}
+              <AIChatToggleButton
+                isOpen={isChatOpen}
+                onClick={() => setIsChatOpen(!isChatOpen)}
+              />
+
+              {/* AI Chat Toggle Button - Mobile */}
+              <AIChatToggleButton
+                isMobile
+                onClick={() => setIsMobileChatOpen(true)}
+              />
+            </div>
           </div>
         </header>
 
@@ -338,6 +366,22 @@ export default function ReadPage() {
           </div>
         </main>
       </div>
+
+      {/* AI Chat Panel - Desktop */}
+      <div className="hidden lg:block">
+        <AIChatPanel
+          isOpen={isChatOpen}
+          onClose={() => setIsChatOpen(false)}
+          currentChapter={selectedChapter}
+        />
+      </div>
+
+      {/* AI Chat Sheet - Mobile */}
+      <MobileAIChatSheet
+        isOpen={isMobileChatOpen}
+        onOpenChange={setIsMobileChatOpen}
+        currentChapter={selectedChapter}
+      />
     </div>
   );
 }
