@@ -18,9 +18,7 @@ export default function Home() {
         <p className="text-xl text-muted-foreground mb-2 font-serif italic">
           Sözler
         </p>
-        <p className="text-muted-foreground mb-10">
-          by Bediüzzaman Said Nursi
-        </p>
+        <p className="text-muted-foreground mb-10">by Bediüzzaman Said Nursi</p>
 
         {/* Description */}
         <p className="text-foreground/80 leading-relaxed mb-10">
