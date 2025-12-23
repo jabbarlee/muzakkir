@@ -64,6 +64,15 @@ const turkishOrdinals: Record<string, number> = {
 };
 
 /**
+ * Special chapters that come after the numbered Words
+ */
+const specialChapters: Record<string, number> = {
+  "lemaat": 34,
+  "konferans": 35,
+  "fihrist": 36,
+};
+
+/**
  * English ordinal number mapping for sorting
  */
 const englishOrdinals: Record<string, number> = {
@@ -108,21 +117,35 @@ const englishOrdinals: Record<string, number> = {
 function getChapterOrder(chapter: string): number {
   const lowerChapter = chapter.toLowerCase().trim();
 
-  // Check for numeric prefix (e.g., "1. Söz", "2. Söz")
+  // Check for numeric prefix (e.g., "01 Birinci Söz", "02 İkinci Söz")
+  // This handles formats like "00 SÖZLER", "01 Birinci Söz", etc.
   const numericMatch = lowerChapter.match(/^(\d+)/);
   if (numericMatch) {
     return parseInt(numericMatch[1], 10);
   }
 
-  // Check Turkish ordinals
-  for (const [ordinal, num] of Object.entries(turkishOrdinals)) {
+  // Check special chapters (Lemaat, Konferans, Fihrist) - these come after numbered chapters
+  for (const [name, num] of Object.entries(specialChapters)) {
+    if (lowerChapter.includes(name)) {
+      return num;
+    }
+  }
+
+  // Check Turkish ordinals (check longer phrases first to avoid partial matches)
+  const sortedTurkishOrdinals = Object.entries(turkishOrdinals).sort(
+    (a, b) => b[0].length - a[0].length
+  );
+  for (const [ordinal, num] of sortedTurkishOrdinals) {
     if (lowerChapter.includes(ordinal)) {
       return num;
     }
   }
 
   // Check English ordinals
-  for (const [ordinal, num] of Object.entries(englishOrdinals)) {
+  const sortedEnglishOrdinals = Object.entries(englishOrdinals).sort(
+    (a, b) => b[0].length - a[0].length
+  );
+  for (const [ordinal, num] of sortedEnglishOrdinals) {
     if (lowerChapter.includes(ordinal)) {
       return num;
     }
@@ -145,25 +168,44 @@ function sortChapters(chapters: string[]): string[] {
 
 /**
  * Fetch all distinct chapter names from the documents table
+ * Uses pagination to handle Supabase's 1000 row limit
  */
 export async function getChapters(): Promise<string[]> {
-  const { data, error } = await supabase
-    .from("documents")
-    .select("metadata->chapter")
-    .not("metadata->chapter", "is", null);
+  const allChapters: string[] = [];
+  const pageSize = 1000;
+  let page = 0;
+  let hasMore = true;
 
-  if (error) {
-    console.error("Error fetching chapters:", error);
-    throw new Error("Failed to fetch chapters");
+  // Paginate through all documents to get all chapters
+  while (hasMore) {
+    const from = page * pageSize;
+    const to = from + pageSize - 1;
+
+    const { data, error } = await supabase
+      .from("documents")
+      .select("metadata->chapter")
+      .not("metadata->chapter", "is", null)
+      .range(from, to);
+
+    if (error) {
+      console.error("Error fetching chapters:", error);
+      throw new Error("Failed to fetch chapters");
+    }
+
+    if (data && data.length > 0) {
+      const chapters = data
+        .map((row) => row.chapter as string)
+        .filter((chapter): chapter is string => !!chapter);
+      allChapters.push(...chapters);
+    }
+
+    // Check if we got less than pageSize, meaning we've reached the end
+    hasMore = data?.length === pageSize;
+    page++;
   }
 
-  // Extract unique chapter names
-  const chapters = data
-    .map((row) => row.chapter as string)
-    .filter((chapter): chapter is string => !!chapter);
-
   // Get unique chapters
-  const uniqueChapters = [...new Set(chapters)];
+  const uniqueChapters = [...new Set(allChapters)];
 
   // Sort chapters by ordinal number
   return sortChapters(uniqueChapters);

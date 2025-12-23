@@ -5,7 +5,6 @@ import { Menu, BookOpen, Loader2 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import rehypeRaw from "rehype-raw";
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Sheet,
   SheetContent,
@@ -30,7 +29,7 @@ function ChapterList({
   isLoading: boolean;
 }) {
   return (
-    <div className="flex flex-col h-full overflow-hidden">
+    <div className="flex flex-col h-full">
       <div className="px-4 py-3 border-b border-sidebar-border flex-shrink-0">
         <div className="flex items-center gap-2 text-sidebar-primary">
           <BookOpen className="size-5" />
@@ -38,7 +37,7 @@ function ChapterList({
         </div>
         <p className="text-xs text-muted-foreground mt-1">Sözler</p>
       </div>
-      <ScrollArea className="flex-1 h-full">
+      <div className="flex-1 overflow-y-auto">
         <nav className="p-2">
           {isLoading ? (
             <div className="flex items-center justify-center py-8">
@@ -71,7 +70,7 @@ function ChapterList({
             ))
           )}
         </nav>
-      </ScrollArea>
+      </div>
     </div>
   );
 }
