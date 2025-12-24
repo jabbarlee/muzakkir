@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { BookOpen, ChevronRight } from "lucide-react";
+import { BookOpen } from "lucide-react";
 import { getBooks, getFirstChapter } from "@/actions/documents";
 import { Book } from "@/lib/types/chat";
 
@@ -10,26 +10,102 @@ async function BookCard({ book }: { book: Book }) {
     : `/read/${book.slug}`;
 
   return (
-    <Link
-      href={href}
-      className="group block p-6 bg-card border border-border rounded-xl hover:border-primary/50 hover:shadow-lg transition-all duration-300"
-    >
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="p-2 bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors">
-              <BookOpen className="size-5 text-primary" />
-            </div>
-            <h2 className="font-serif text-xl font-semibold text-card-foreground group-hover:text-primary transition-colors truncate">
+    <Link href={href} className="group block">
+      {/* Book Container */}
+      <div className="relative w-[180px] sm:w-[200px] transition-all duration-300 ease-out group-hover:-translate-y-3">
+        {/* Book Cover */}
+        <div
+          className="relative h-[260px] sm:h-[300px] rounded-r-md rounded-l-sm overflow-hidden"
+          style={{
+            background: `linear-gradient(135deg, var(--primary) 0%, oklch(0.35 0.12 35) 100%)`,
+            boxShadow: `
+              4px 4px 12px rgba(0,0,0,0.15),
+              inset -2px 0 4px rgba(255,255,255,0.1),
+              inset 2px 0 8px rgba(0,0,0,0.2)
+            `,
+          }}
+        >
+          {/* Spine Edge Effect */}
+          <div
+            className="absolute left-0 top-0 bottom-0 w-[14px] sm:w-[18px]"
+            style={{
+              background: `linear-gradient(90deg, 
+                rgba(0,0,0,0.3) 0%, 
+                rgba(0,0,0,0.1) 30%,
+                rgba(255,255,255,0.05) 70%,
+                transparent 100%
+              )`,
+            }}
+          />
+
+          {/* Top & Bottom Page Effect */}
+          <div
+            className="absolute top-0 left-3 right-0 h-[3px]"
+            style={{
+              background: `linear-gradient(180deg, rgba(0,0,0,0.2) 0%, transparent 100%)`,
+            }}
+          />
+          <div
+            className="absolute bottom-0 left-3 right-0 h-[3px]"
+            style={{
+              background: `linear-gradient(0deg, rgba(0,0,0,0.15) 0%, transparent 100%)`,
+            }}
+          />
+
+          {/* Decorative Border */}
+          <div className="absolute inset-4 sm:inset-5 border border-primary-foreground/20 rounded-sm" />
+
+          {/* Book Title */}
+          <div className="absolute inset-0 flex flex-col items-center justify-center px-5 sm:px-6 text-center">
+            <div className="w-10 h-[1px] bg-primary-foreground/30 mb-4" />
+            <p className="font-serif text-2xl font-semibold text-primary-foreground leading-tight tracking-wide">
               {book.title}
-            </h2>
+            </p>
+            <div className="w-10 h-[1px] bg-primary-foreground/30 mt-4" />
           </div>
-          <p className="text-sm text-muted-foreground">
-            Click to start reading
-          </p>
+
+          {/* Bottom Icon */}
+          <div className="absolute bottom-5 sm:bottom-6 left-1/2 -translate-x-1/2">
+            <BookOpen className="size-5 text-primary-foreground/40" />
+          </div>
+
+          {/* Hover Glow Effect */}
+          <div
+            className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+            style={{
+              background: `radial-gradient(ellipse at center, rgba(255,255,255,0.1) 0%, transparent 70%)`,
+            }}
+          />
         </div>
-        <ChevronRight className="size-5 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all flex-shrink-0 mt-2" />
+
+        {/* Book Pages (Side Effect) */}
+        <div
+          className="absolute right-0 top-[4px] bottom-[4px] w-[8px] rounded-r-sm"
+          style={{
+            background: `linear-gradient(90deg, 
+              oklch(0.95 0.01 80) 0%,
+              oklch(0.92 0.01 80) 30%,
+              oklch(0.88 0.01 80) 60%,
+              oklch(0.85 0.01 80) 100%
+            )`,
+            transform: `translateX(100%)`,
+            boxShadow: `2px 0 4px rgba(0,0,0,0.1)`,
+          }}
+        />
+
+        {/* Book Shadow */}
+        <div
+          className="absolute -bottom-3 left-3 right-0 h-5 rounded-full blur-md transition-all duration-300 group-hover:blur-lg group-hover:-bottom-4"
+          style={{
+            background: `rgba(0,0,0,0.18)`,
+          }}
+        />
       </div>
+
+      {/* Book Label */}
+      <p className="mt-5 text-sm text-muted-foreground text-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+        Read now
+      </p>
     </Link>
   );
 }
@@ -50,7 +126,7 @@ export default async function ReadPage() {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 py-12 sm:py-16">
+      <main className="max-w-5xl mx-auto px-4 sm:px-6 py-12 sm:py-16">
         {/* Hero Section */}
         <div className="text-center mb-12">
           <h1 className="font-serif text-3xl sm:text-4xl font-bold text-foreground mb-4">
@@ -61,17 +137,20 @@ export default async function ReadPage() {
           </p>
         </div>
 
-        {/* Books Grid */}
+        {/* Books Shelf */}
         {books.length === 0 ? (
           <div className="text-center py-16">
             <BookOpen className="size-12 text-muted-foreground/50 mx-auto mb-4" />
             <p className="text-muted-foreground">No books available yet</p>
           </div>
         ) : (
-          <div className="grid gap-4 sm:gap-6">
-            {books.map((book) => (
-              <BookCard key={book.id} book={book} />
-            ))}
+          <div className="relative">
+            {/* Books Row */}
+            <div className="flex flex-wrap justify-center gap-8 sm:gap-10 pb-10">
+              {books.map((book) => (
+                <BookCard key={book.id} book={book} />
+              ))}
+            </div>
           </div>
         )}
       </main>
