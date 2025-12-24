@@ -38,10 +38,11 @@ export async function generateEmbedding(text: string): Promise<number[]> {
 }
 
 /**
- * Search for similar documents in Supabase using vector similarity
+ * Search for similar paragraphs in Supabase using vector similarity
+ * Uses the new match_paragraphs RPC function
  * @param embedding - The query embedding vector
  * @param options - Search options (threshold and count)
- * @returns Array of matching documents with similarity scores
+ * @returns Array of matching paragraphs with similarity scores
  */
 export async function searchSimilarDocuments(
   embedding: number[],
@@ -50,7 +51,7 @@ export async function searchSimilarDocuments(
   const { matchThreshold = 0.3, matchCount = 5 } = options;
 
   try {
-    const { data, error } = await supabase.rpc("match_documents", {
+    const { data, error } = await supabase.rpc("match_paragraphs", {
       query_embedding: embedding,
       match_threshold: matchThreshold,
       match_count: matchCount,
@@ -69,8 +70,8 @@ export async function searchSimilarDocuments(
 }
 
 /**
- * Build a context string from matched documents for the AI prompt
- * @param documents - Array of matched documents
+ * Build a context string from matched paragraphs for the AI prompt
+ * @param documents - Array of matched paragraphs
  * @returns Formatted context string
  */
 export function buildContext(documents: DocumentMatch[]): string {
@@ -80,22 +81,21 @@ export function buildContext(documents: DocumentMatch[]): string {
 
   return documents
     .map((doc, index) => {
-      const chapter = doc.metadata?.chapter || "Unknown Chapter";
-      return `[Source ${index + 1} - ${chapter}]\n${doc.content}`;
+      const source = `${doc.book_title} - ${doc.chapter_title}`;
+      return `[Source ${index + 1} - ${source}]\n${doc.content}`;
     })
     .join("\n\n---\n\n");
 }
 
 /**
- * Extract unique chapter names from matched documents
- * @param documents - Array of matched documents
- * @returns Array of unique chapter names
+ * Extract unique source strings from matched paragraphs
+ * @param documents - Array of matched paragraphs
+ * @returns Array of unique source strings in "Book - Chapter" format
  */
 export function extractSources(documents: DocumentMatch[]): string[] {
-  const chapters = documents
-    .map((doc) => doc.metadata?.chapter)
-    .filter((chapter): chapter is string => !!chapter);
+  const sources = documents
+    .map((doc) => `${doc.book_title} - ${doc.chapter_title}`)
+    .filter((source): source is string => !!source);
 
-  return [...new Set(chapters)];
+  return [...new Set(sources)];
 }
-

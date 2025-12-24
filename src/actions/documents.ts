@@ -1,237 +1,281 @@
 "use server";
 
 import { supabase } from "@/lib/supabase";
+import { Book, Chapter, Paragraph } from "@/lib/types/chat";
 
-export interface DocumentChunk {
-  id: number;
-  content: string;
-  metadata: {
-    chapter?: string;
-    [key: string]: unknown;
-  };
-}
+// ============================================
+// Book Functions
+// ============================================
 
 /**
- * Turkish ordinal number mapping for sorting
+ * Fetch all books from the books table
  */
-const turkishOrdinals: Record<string, number> = {
-  birinci: 1,
-  ikinci: 2,
-  üçüncü: 3,
-  ucuncu: 3, // alternative spelling
-  dördüncü: 4,
-  dorduncu: 4,
-  beşinci: 5,
-  besinci: 5,
-  altıncı: 6,
-  altinci: 6,
-  yedinci: 7,
-  sekizinci: 8,
-  dokuzuncu: 9,
-  onuncu: 10,
-  "on birinci": 11,
-  "on ikinci": 12,
-  "on üçüncü": 13,
-  "on ucuncu": 13,
-  "on dördüncü": 14,
-  "on dorduncu": 14,
-  "on beşinci": 15,
-  "on besinci": 15,
-  "on altıncı": 16,
-  "on altinci": 16,
-  "on yedinci": 17,
-  "on sekizinci": 18,
-  "on dokuzuncu": 19,
-  yirminci: 20,
-  "yirmi birinci": 21,
-  "yirmi ikinci": 22,
-  "yirmi üçüncü": 23,
-  "yirmi ucuncu": 23,
-  "yirmi dördüncü": 24,
-  "yirmi dorduncu": 24,
-  "yirmi beşinci": 25,
-  "yirmi besinci": 25,
-  "yirmi altıncı": 26,
-  "yirmi altinci": 26,
-  "yirmi yedinci": 27,
-  "yirmi sekizinci": 28,
-  "yirmi dokuzuncu": 29,
-  otuzuncu: 30,
-  "otuz birinci": 31,
-  "otuz ikinci": 32,
-  "otuz üçüncü": 33,
-  "otuz ucuncu": 33,
-};
-
-/**
- * Special chapters that come after the numbered Words
- */
-const specialChapters: Record<string, number> = {
-  "lemaat": 34,
-  "konferans": 35,
-  "fihrist": 36,
-};
-
-/**
- * English ordinal number mapping for sorting
- */
-const englishOrdinals: Record<string, number> = {
-  first: 1,
-  second: 2,
-  third: 3,
-  fourth: 4,
-  fifth: 5,
-  sixth: 6,
-  seventh: 7,
-  eighth: 8,
-  ninth: 9,
-  tenth: 10,
-  eleventh: 11,
-  twelfth: 12,
-  thirteenth: 13,
-  fourteenth: 14,
-  fifteenth: 15,
-  sixteenth: 16,
-  seventeenth: 17,
-  eighteenth: 18,
-  nineteenth: 19,
-  twentieth: 20,
-  "twenty-first": 21,
-  "twenty-second": 22,
-  "twenty-third": 23,
-  "twenty-fourth": 24,
-  "twenty-fifth": 25,
-  "twenty-sixth": 26,
-  "twenty-seventh": 27,
-  "twenty-eighth": 28,
-  "twenty-ninth": 29,
-  thirtieth: 30,
-  "thirty-first": 31,
-  "thirty-second": 32,
-  "thirty-third": 33,
-};
-
-/**
- * Extract the ordinal number from a chapter name
- */
-function getChapterOrder(chapter: string): number {
-  const lowerChapter = chapter.toLowerCase().trim();
-
-  // Check for numeric prefix (e.g., "01 Birinci Söz", "02 İkinci Söz")
-  // This handles formats like "00 SÖZLER", "01 Birinci Söz", etc.
-  const numericMatch = lowerChapter.match(/^(\d+)/);
-  if (numericMatch) {
-    return parseInt(numericMatch[1], 10);
-  }
-
-  // Check special chapters (Lemaat, Konferans, Fihrist) - these come after numbered chapters
-  for (const [name, num] of Object.entries(specialChapters)) {
-    if (lowerChapter.includes(name)) {
-      return num;
-    }
-  }
-
-  // Check Turkish ordinals (check longer phrases first to avoid partial matches)
-  const sortedTurkishOrdinals = Object.entries(turkishOrdinals).sort(
-    (a, b) => b[0].length - a[0].length
-  );
-  for (const [ordinal, num] of sortedTurkishOrdinals) {
-    if (lowerChapter.includes(ordinal)) {
-      return num;
-    }
-  }
-
-  // Check English ordinals
-  const sortedEnglishOrdinals = Object.entries(englishOrdinals).sort(
-    (a, b) => b[0].length - a[0].length
-  );
-  for (const [ordinal, num] of sortedEnglishOrdinals) {
-    if (lowerChapter.includes(ordinal)) {
-      return num;
-    }
-  }
-
-  // If no ordinal found, return a high number to sort at the end
-  return 999;
-}
-
-/**
- * Sort chapters by their ordinal number
- */
-function sortChapters(chapters: string[]): string[] {
-  return chapters.sort((a, b) => {
-    const orderA = getChapterOrder(a);
-    const orderB = getChapterOrder(b);
-    return orderA - orderB;
-  });
-}
-
-/**
- * Fetch all distinct chapter names from the documents table
- * Uses pagination to handle Supabase's 1000 row limit
- */
-export async function getChapters(): Promise<string[]> {
-  const allChapters: string[] = [];
-  const pageSize = 1000;
-  let page = 0;
-  let hasMore = true;
-
-  // Paginate through all documents to get all chapters
-  while (hasMore) {
-    const from = page * pageSize;
-    const to = from + pageSize - 1;
-
-    const { data, error } = await supabase
-      .from("documents")
-      .select("metadata->chapter")
-      .not("metadata->chapter", "is", null)
-      .range(from, to);
-
-    if (error) {
-      console.error("Error fetching chapters:", error);
-      throw new Error("Failed to fetch chapters");
-    }
-
-    if (data && data.length > 0) {
-      const chapters = data
-        .map((row) => row.chapter as string)
-        .filter((chapter): chapter is string => !!chapter);
-      allChapters.push(...chapters);
-    }
-
-    // Check if we got less than pageSize, meaning we've reached the end
-    hasMore = data?.length === pageSize;
-    page++;
-  }
-
-  // Get unique chapters
-  const uniqueChapters = [...new Set(allChapters)];
-
-  // Sort chapters by ordinal number
-  return sortChapters(uniqueChapters);
-}
-
-/**
- * Fetch all document chunks for a specific chapter, sorted by id
- */
-export async function getChapterContent(chapter: string): Promise<string> {
+export async function getBooks(): Promise<Book[]> {
   const { data, error } = await supabase
-    .from("documents")
-    .select("id, content, metadata")
-    .eq("metadata->>chapter", chapter)
+    .from("books")
+    .select("id, title, slug")
     .order("id", { ascending: true });
 
   if (error) {
-    console.error("Error fetching chapter content:", error);
-    throw new Error("Failed to fetch chapter content");
+    console.error("Error fetching books:", error);
+    throw new Error("Failed to fetch books");
   }
 
-  if (!data || data.length === 0) {
+  return data || [];
+}
+
+/**
+ * Find a book by its slug
+ * @returns The book or null if not found
+ */
+export async function getBookBySlug(slug: string): Promise<Book | null> {
+  const { data, error } = await supabase
+    .from("books")
+    .select("id, title, slug")
+    .eq("slug", slug)
+    .single();
+
+  if (error) {
+    if (error.code === "PGRST116") {
+      // No rows returned - book not found
+      return null;
+    }
+    console.error("Error fetching book by slug:", error);
+    throw new Error("Failed to fetch book");
+  }
+
+  return data;
+}
+
+// ============================================
+// Chapter Functions
+// ============================================
+
+/**
+ * Fetch all chapters for a book by book slug
+ * Sorted by chapter_number ASC for correct order
+ */
+export async function getChapters(bookSlug: string): Promise<Chapter[]> {
+  // First, find the book by slug
+  const book = await getBookBySlug(bookSlug);
+  
+  if (!book) {
+    return [];
+  }
+
+  const { data, error } = await supabase
+    .from("chapters")
+    .select("id, book_id, title, chapter_number")
+    .eq("book_id", book.id)
+    .order("chapter_number", { ascending: true });
+
+  if (error) {
+    console.error("Error fetching chapters:", error);
+    throw new Error("Failed to fetch chapters");
+  }
+
+  return data || [];
+}
+
+/**
+ * Get a chapter by its ID
+ * @returns The chapter or null if not found
+ */
+export async function getChapterById(chapterId: number): Promise<Chapter | null> {
+  const { data, error } = await supabase
+    .from("chapters")
+    .select("id, book_id, title, chapter_number")
+    .eq("id", chapterId)
+    .single();
+
+  if (error) {
+    if (error.code === "PGRST116") {
+      return null;
+    }
+    console.error("Error fetching chapter:", error);
+    throw new Error("Failed to fetch chapter");
+  }
+
+  return data;
+}
+
+/**
+ * Get the first chapter of a book
+ */
+export async function getFirstChapter(bookSlug: string): Promise<Chapter | null> {
+  const book = await getBookBySlug(bookSlug);
+  
+  if (!book) {
+    return null;
+  }
+
+  const { data, error } = await supabase
+    .from("chapters")
+    .select("id, book_id, title, chapter_number")
+    .eq("book_id", book.id)
+    .order("chapter_number", { ascending: true })
+    .limit(1)
+    .single();
+
+  if (error) {
+    if (error.code === "PGRST116") {
+      return null;
+    }
+    console.error("Error fetching first chapter:", error);
+    throw new Error("Failed to fetch first chapter");
+  }
+
+  return data;
+}
+
+// ============================================
+// Chapter Navigation
+// ============================================
+
+/**
+ * Get the next chapter in the same book
+ * @returns The next chapter or null if this is the last chapter
+ */
+export async function getNextChapter(
+  bookSlug: string,
+  currentChapterId: number
+): Promise<Chapter | null> {
+  const book = await getBookBySlug(bookSlug);
+  if (!book) return null;
+
+  // Get current chapter to find its chapter_number
+  const currentChapter = await getChapterById(currentChapterId);
+  if (!currentChapter) return null;
+
+  const { data, error } = await supabase
+    .from("chapters")
+    .select("id, book_id, title, chapter_number")
+    .eq("book_id", book.id)
+    .gt("chapter_number", currentChapter.chapter_number)
+    .order("chapter_number", { ascending: true })
+    .limit(1)
+    .single();
+
+  if (error) {
+    if (error.code === "PGRST116") {
+      // No next chapter found
+      return null;
+    }
+    console.error("Error fetching next chapter:", error);
+    throw new Error("Failed to fetch next chapter");
+  }
+
+  return data;
+}
+
+/**
+ * Get the previous chapter in the same book
+ * @returns The previous chapter or null if this is the first chapter
+ */
+export async function getPreviousChapter(
+  bookSlug: string,
+  currentChapterId: number
+): Promise<Chapter | null> {
+  const book = await getBookBySlug(bookSlug);
+  if (!book) return null;
+
+  // Get current chapter to find its chapter_number
+  const currentChapter = await getChapterById(currentChapterId);
+  if (!currentChapter) return null;
+
+  const { data, error } = await supabase
+    .from("chapters")
+    .select("id, book_id, title, chapter_number")
+    .eq("book_id", book.id)
+    .lt("chapter_number", currentChapter.chapter_number)
+    .order("chapter_number", { ascending: false })
+    .limit(1)
+    .single();
+
+  if (error) {
+    if (error.code === "PGRST116") {
+      // No previous chapter found
+      return null;
+    }
+    console.error("Error fetching previous chapter:", error);
+    throw new Error("Failed to fetch previous chapter");
+  }
+
+  return data;
+}
+
+// ============================================
+// Paragraph / Content Functions
+// ============================================
+
+/**
+ * Fetch all paragraphs for a chapter, sorted by sequence_number ASC
+ * Returns them as an array for granular control
+ */
+export async function getChapterParagraphs(
+  chapterId: number
+): Promise<Paragraph[]> {
+  const { data, error } = await supabase
+    .from("paragraphs")
+    .select("id, chapter_id, content, sequence_number")
+    .eq("chapter_id", chapterId)
+    .order("sequence_number", { ascending: true });
+
+  if (error) {
+    console.error("Error fetching paragraphs:", error);
+    throw new Error("Failed to fetch paragraphs");
+  }
+
+  return data || [];
+}
+
+/**
+ * Fetch chapter content as a single markdown string
+ * Joins all paragraphs in sequence order
+ */
+export async function getChapterContent(chapterId: number): Promise<string> {
+  const paragraphs = await getChapterParagraphs(chapterId);
+
+  if (paragraphs.length === 0) {
     return "";
   }
 
-  // Join all content chunks into a single markdown string
-  const content = data.map((chunk) => chunk.content).join("\n\n");
+  // Join all paragraph content into a single markdown string
+  return paragraphs.map((p) => p.content).join("\n\n");
+}
 
-  return content;
+// ============================================
+// Combined Data Functions (for page loading)
+// ============================================
+
+/**
+ * Get complete chapter data including book info and content
+ * Useful for the reader page
+ */
+export async function getChapterWithContext(
+  bookSlug: string,
+  chapterId: number
+): Promise<{
+  book: Book;
+  chapter: Chapter;
+  content: string;
+  chapters: Chapter[];
+} | null> {
+  const book = await getBookBySlug(bookSlug);
+  if (!book) return null;
+
+  const chapter = await getChapterById(chapterId);
+  if (!chapter || chapter.book_id !== book.id) return null;
+
+  const [content, chapters] = await Promise.all([
+    getChapterContent(chapterId),
+    getChapters(bookSlug),
+  ]);
+
+  return {
+    book,
+    chapter,
+    content,
+    chapters,
+  };
 }

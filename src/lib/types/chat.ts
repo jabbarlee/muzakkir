@@ -1,3 +1,40 @@
+// ============================================
+// Database Entity Types (Relational Schema)
+// ============================================
+
+/**
+ * Book entity from the books table
+ */
+export interface Book {
+  id: number;
+  title: string;
+  slug: string;
+}
+
+/**
+ * Chapter entity from the chapters table
+ */
+export interface Chapter {
+  id: number;
+  book_id: number;
+  title: string;
+  chapter_number: number;
+}
+
+/**
+ * Paragraph entity from the paragraphs table
+ */
+export interface Paragraph {
+  id: number;
+  chapter_id: number;
+  content: string;
+  sequence_number: number;
+}
+
+// ============================================
+// Chat Types
+// ============================================
+
 /**
  * Chat message type for the AI chat interface
  */
@@ -29,17 +66,15 @@ export interface ChatRequest {
 }
 
 /**
- * Document match returned from vector similarity search
+ * Document match returned from vector similarity search (match_paragraphs RPC)
  */
 export interface DocumentMatch {
   id: number;
   content: string;
-  metadata: {
-    chapter?: string;
-    book?: string;
-    [key: string]: unknown;
-  };
   similarity: number;
+  book_title: string;
+  chapter_title: string;
+  chapter_id: number;
 }
 
 /**
