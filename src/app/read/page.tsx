@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
-import { Menu, BookOpen, Loader2 } from "lucide-react";
+import { useState, useEffect, useMemo, useCallback } from "react";
+import { Menu, BookOpen, Loader2, MessageSquareQuote } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import rehypeRaw from "rehype-raw";
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,55 @@ import {
 } from "@/components/ai-chat-panel";
 import { getChapters, getChapterContent } from "@/actions/documents";
 import { processContent } from "@/lib/content-processor";
+
+// Selection popup component
+function SelectionPopup({
+  position,
+  onAskAbout,
+  onClose,
+}: {
+  position: { x: number; y: number };
+  onAskAbout: () => void;
+  onClose: () => void;
+}) {
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest(".selection-popup")) {
+        onClose();
+      }
+    };
+
+    // Delay adding the listener to avoid immediate close
+    const timer = setTimeout(() => {
+      document.addEventListener("mousedown", handleClick);
+    }, 100);
+
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener("mousedown", handleClick);
+    };
+  }, [onClose]);
+
+  return (
+    <div
+      className="selection-popup fixed z-50 animate-in fade-in-0 zoom-in-95 duration-150"
+      style={{
+        left: position.x,
+        top: position.y,
+        transform: "translateX(-50%)",
+      }}
+    >
+      <button
+        onClick={onAskAbout}
+        className="flex items-center gap-2 px-3 py-2 bg-primary text-primary-foreground rounded-lg shadow-lg hover:bg-primary/90 transition-colors text-sm font-medium"
+      >
+        <MessageSquareQuote className="size-4" />
+        <span>Ask about this</span>
+      </button>
+    </div>
+  );
+}
 
 function ChapterList({
   chapters,
@@ -91,8 +140,78 @@ export default function ReadPage() {
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isMobileChatOpen, setIsMobileChatOpen] = useState(false);
 
+  // Text selection state
+  const [selectedText, setSelectedText] = useState<string | null>(null);
+  const [selectionPopup, setSelectionPopup] = useState<{
+    visible: boolean;
+    x: number;
+    y: number;
+    text: string;
+  } | null>(null);
+
+  // Reference text to send to chat
+  const [referenceText, setReferenceText] = useState<string | null>(null);
+
   // Process content with memoization
   const content = useMemo(() => processContent(rawContent), [rawContent]);
+
+  // Handle text selection
+  const handleTextSelection = useCallback(() => {
+    const selection = window.getSelection();
+    const text = selection?.toString().trim();
+
+    if (text && text.length > 10 && text.length < 1000) {
+      const range = selection?.getRangeAt(0);
+      const rect = range?.getBoundingClientRect();
+
+      if (rect) {
+        setSelectionPopup({
+          visible: true,
+          x: rect.left + rect.width / 2,
+          y: rect.top - 10,
+          text,
+        });
+      }
+    } else {
+      setSelectionPopup(null);
+    }
+  }, []);
+
+  // Handle asking about selected text
+  const handleAskAboutSelection = useCallback(() => {
+    if (selectionPopup?.text) {
+      setReferenceText(selectionPopup.text);
+      setSelectedText(selectionPopup.text);
+      setSelectionPopup(null);
+
+      // Open chat panel
+      if (window.innerWidth >= 1024) {
+        setIsChatOpen(true);
+      } else {
+        setIsMobileChatOpen(true);
+      }
+
+      // Clear the browser selection
+      window.getSelection()?.removeAllRanges();
+    }
+  }, [selectionPopup]);
+
+  // Clear reference after it's been used
+  const clearReference = useCallback(() => {
+    setReferenceText(null);
+    setSelectedText(null);
+  }, []);
+
+  // Add mouseup listener for text selection
+  useEffect(() => {
+    const handleMouseUp = () => {
+      // Small delay to ensure selection is complete
+      setTimeout(handleTextSelection, 10);
+    };
+
+    document.addEventListener("mouseup", handleMouseUp);
+    return () => document.removeEventListener("mouseup", handleMouseUp);
+  }, [handleTextSelection]);
 
   // Fetch chapters on mount
   useEffect(() => {
@@ -157,6 +276,15 @@ export default function ReadPage() {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Selection Popup */}
+      {selectionPopup?.visible && (
+        <SelectionPopup
+          position={{ x: selectionPopup.x, y: selectionPopup.y }}
+          onAskAbout={handleAskAboutSelection}
+          onClose={() => setSelectionPopup(null)}
+        />
+      )}
+
       {/* Desktop Sidebar */}
       <aside className="hidden lg:flex lg:fixed lg:inset-y-0 lg:left-0 lg:w-64 lg:flex-col bg-sidebar border-r border-sidebar-border overflow-hidden">
         <ChapterList
@@ -373,6 +501,8 @@ export default function ReadPage() {
           isOpen={isChatOpen}
           onClose={() => setIsChatOpen(false)}
           currentChapter={selectedChapter}
+          referenceText={referenceText}
+          onReferenceClear={clearReference}
         />
       </div>
 
@@ -381,6 +511,8 @@ export default function ReadPage() {
         isOpen={isMobileChatOpen}
         onOpenChange={setIsMobileChatOpen}
         currentChapter={selectedChapter}
+        referenceText={referenceText}
+        onReferenceClear={clearReference}
       />
     </div>
   );

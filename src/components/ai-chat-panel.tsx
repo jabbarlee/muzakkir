@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { X, Send, Sparkles, MessageCircle, Loader2, BookOpen, Languages } from "lucide-react";
+import { X, Send, Sparkles, MessageCircle, Loader2, BookOpen, Languages, Quote } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { Button } from "@/components/ui/button";
 import {
@@ -19,6 +19,16 @@ interface AIChatPanelProps {
   isOpen: boolean;
   onClose: () => void;
   currentChapter: string | null;
+  referenceText?: string | null;
+  onReferenceClear?: () => void;
+}
+
+interface MobileAIChatSheetProps {
+  isOpen: boolean;
+  onOpenChange: (open: boolean) => void;
+  currentChapter: string | null;
+  referenceText?: string | null;
+  onReferenceClear?: () => void;
 }
 
 // Generate unique ID for messages
@@ -64,27 +74,36 @@ const UI_TEXT: Record<Language, {
   thinking: string;
   suggestedQuestions: string;
   placeholder: string;
+  placeholderWithRef: string;
   grounded: string;
   readingContext: string;
   assistant: string;
+  selectedText: string;
+  askAboutThis: string;
 }> = {
   en: {
     sourcesUsed: "Sources Used",
     thinking: "Thinking...",
     suggestedQuestions: "Suggested questions:",
     placeholder: "Ask a question about this chapter...",
+    placeholderWithRef: "Ask about the selected text...",
     grounded: "Answers are grounded in the Risale-i Nur text",
     readingContext: "Reading context:",
     assistant: "Your Risale-i Nur assistant",
+    selectedText: "Selected text:",
+    askAboutThis: "Explain this passage",
   },
   tr: {
     sourcesUsed: "Kullanılan Kaynaklar",
     thinking: "Düşünüyor...",
     suggestedQuestions: "Önerilen sorular:",
     placeholder: "Bu bölüm hakkında bir soru sorun...",
+    placeholderWithRef: "Seçili metin hakkında sorun...",
     grounded: "Cevaplar Risale-i Nur metnine dayalıdır",
     readingContext: "Okuma bağlamı:",
     assistant: "Risale-i Nur asistanınız",
+    selectedText: "Seçili metin:",
+    askAboutThis: "Bu pasajı açıkla",
   },
 };
 
@@ -105,6 +124,49 @@ function LanguageToggle({
       <Languages className="size-3" />
       <span>{language.toUpperCase()}</span>
     </button>
+  );
+}
+
+// Reference text display component
+function ReferenceCard({
+  text,
+  onClear,
+  onAsk,
+  language,
+}: {
+  text: string;
+  onClear: () => void;
+  onAsk: () => void;
+  language: Language;
+}) {
+  const truncatedText = text.length > 150 ? text.substring(0, 150) + "..." : text;
+
+  return (
+    <div className="mx-4 mb-3 p-3 rounded-lg bg-primary/5 border border-primary/20">
+      <div className="flex items-start justify-between gap-2 mb-2">
+        <div className="flex items-center gap-1.5">
+          <Quote className="size-3 text-primary" />
+          <span className="text-xs font-medium text-primary">
+            {UI_TEXT[language].selectedText}
+          </span>
+        </div>
+        <button
+          onClick={onClear}
+          className="text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <X className="size-3.5" />
+        </button>
+      </div>
+      <p className="text-xs text-muted-foreground italic leading-relaxed mb-2">
+        "{truncatedText}"
+      </p>
+      <button
+        onClick={onAsk}
+        className="text-xs font-medium text-primary hover:text-primary/80 transition-colors"
+      >
+        {UI_TEXT[language].askAboutThis} →
+      </button>
+    </div>
   );
 }
 
@@ -155,6 +217,14 @@ function MessageBubble({ message, language }: { message: Message; language: Lang
   return (
     <div className={`flex ${isUser ? "justify-end" : "justify-start"}`}>
       <div className="max-w-[85%]">
+        {/* Show reference if present in user message */}
+        {isUser && message.reference && (
+          <div className="mb-1 p-2 rounded-lg bg-primary/10 border border-primary/20">
+            <p className="text-xs text-primary/80 italic line-clamp-2">
+              "{message.reference}"
+            </p>
+          </div>
+        )}
         <div
           className={`rounded-2xl px-4 py-3 ${
             isUser
@@ -220,7 +290,12 @@ function MessageBubble({ message, language }: { message: Message; language: Lang
 }
 
 // Shared chat logic hook
-function useChat(currentChapter: string | null, language: Language) {
+function useChat(
+  currentChapter: string | null,
+  language: Language,
+  referenceText: string | null,
+  onReferenceClear?: () => void
+) {
   const [messages, setMessages] = useState<Message[]>([WELCOME_MESSAGES[language]]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -248,13 +323,14 @@ function useChat(currentChapter: string | null, language: Language) {
 
   // Send message to API
   const sendMessage = useCallback(
-    async (question: string) => {
+    async (question: string, reference?: string) => {
       if (!question.trim() || isLoading) return;
 
       const userMessage: Message = {
         id: generateId(),
         role: "user",
         content: question.trim(),
+        reference: reference,
         timestamp: new Date(),
       };
 
@@ -262,6 +338,11 @@ function useChat(currentChapter: string | null, language: Language) {
       setInput("");
       setIsLoading(true);
       setError(null);
+
+      // Clear the reference after sending
+      if (reference && onReferenceClear) {
+        onReferenceClear();
+      }
 
       try {
         const response = await fetch("/api/chat", {
@@ -272,7 +353,8 @@ function useChat(currentChapter: string | null, language: Language) {
           body: JSON.stringify({
             question: question.trim(),
             currentChapter,
-            language, // Pass language to API
+            language,
+            referenceText: reference,
           }),
         });
 
@@ -298,7 +380,6 @@ function useChat(currentChapter: string | null, language: Language) {
           err instanceof Error ? err.message : "An unexpected error occurred"
         );
 
-        // Add error message to chat
         const errorMessage: Message = {
           id: generateId(),
           role: "assistant",
@@ -312,16 +393,16 @@ function useChat(currentChapter: string | null, language: Language) {
         setIsLoading(false);
       }
     },
-    [currentChapter, isLoading, language]
+    [currentChapter, isLoading, language, onReferenceClear]
   );
 
   // Handle form submission
   const handleSubmit = useCallback(
     (e?: React.FormEvent) => {
       e?.preventDefault();
-      sendMessage(input);
+      sendMessage(input, referenceText || undefined);
     },
-    [input, sendMessage]
+    [input, sendMessage, referenceText]
   );
 
   // Handle keyboard events
@@ -343,6 +424,16 @@ function useChat(currentChapter: string | null, language: Language) {
     [sendMessage]
   );
 
+  // Handle asking about reference
+  const handleAskAboutReference = useCallback(() => {
+    if (referenceText) {
+      const question = language === "tr" 
+        ? "Bu pasajı açıklar mısın?"
+        : "Can you explain this passage?";
+      sendMessage(question, referenceText);
+    }
+  }, [referenceText, language, sendMessage]);
+
   return {
     messages,
     input,
@@ -353,6 +444,8 @@ function useChat(currentChapter: string | null, language: Language) {
     handleSubmit,
     handleKeyDown,
     handleSuggestedQuestion,
+    handleAskAboutReference,
+    sendMessage,
   };
 }
 
@@ -361,6 +454,8 @@ export function AIChatPanel({
   isOpen,
   onClose,
   currentChapter,
+  referenceText,
+  onReferenceClear,
 }: AIChatPanelProps) {
   const [language, setLanguage] = useState<Language>("tr");
   
@@ -377,10 +472,10 @@ export function AIChatPanel({
     handleSubmit,
     handleKeyDown,
     handleSuggestedQuestion,
-  } = useChat(currentChapter, language);
+    handleAskAboutReference,
+  } = useChat(currentChapter, language, referenceText || null, onReferenceClear);
 
-  // Only show suggested questions if there's only the welcome message
-  const showSuggestions = messages.length === 1;
+  const showSuggestions = messages.length === 1 && !referenceText;
 
   return (
     <div
@@ -455,6 +550,16 @@ export function AIChatPanel({
         <div ref={messagesEndRef} />
       </div>
 
+      {/* Reference Text Card */}
+      {referenceText && onReferenceClear && (
+        <ReferenceCard
+          text={referenceText}
+          onClear={onReferenceClear}
+          onAsk={handleAskAboutReference}
+          language={language}
+        />
+      )}
+
       {/* Input Area */}
       <form
         onSubmit={handleSubmit}
@@ -466,7 +571,7 @@ export function AIChatPanel({
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={UI_TEXT[language].placeholder}
+            placeholder={referenceText ? UI_TEXT[language].placeholderWithRef : UI_TEXT[language].placeholder}
             disabled={isLoading}
             className="flex-1 px-4 py-2.5 rounded-xl border border-input bg-background text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent transition-all duration-200 disabled:opacity-50"
           />
@@ -491,17 +596,13 @@ export function AIChatPanel({
   );
 }
 
-interface MobileAIChatSheetProps {
-  isOpen: boolean;
-  onOpenChange: (open: boolean) => void;
-  currentChapter: string | null;
-}
-
 // Mobile AI Chat Sheet
 export function MobileAIChatSheet({
   isOpen,
   onOpenChange,
   currentChapter,
+  referenceText,
+  onReferenceClear,
 }: MobileAIChatSheetProps) {
   const [language, setLanguage] = useState<Language>("tr");
   
@@ -518,10 +619,10 @@ export function MobileAIChatSheet({
     handleSubmit,
     handleKeyDown,
     handleSuggestedQuestion,
-  } = useChat(currentChapter, language);
+    handleAskAboutReference,
+  } = useChat(currentChapter, language, referenceText || null, onReferenceClear);
 
-  // Only show suggested questions if there's only the welcome message
-  const showSuggestions = messages.length === 1;
+  const showSuggestions = messages.length === 1 && !referenceText;
 
   return (
     <Sheet open={isOpen} onOpenChange={onOpenChange}>
@@ -586,6 +687,16 @@ export function MobileAIChatSheet({
             <div ref={messagesEndRef} />
           </div>
 
+          {/* Reference Text Card */}
+          {referenceText && onReferenceClear && (
+            <ReferenceCard
+              text={referenceText}
+              onClear={onReferenceClear}
+              onAsk={handleAskAboutReference}
+              language={language}
+            />
+          )}
+
           {/* Input Area */}
           <form
             onSubmit={handleSubmit}
@@ -597,7 +708,7 @@ export function MobileAIChatSheet({
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder={UI_TEXT[language].placeholder}
+                placeholder={referenceText ? UI_TEXT[language].placeholderWithRef : UI_TEXT[language].placeholder}
                 disabled={isLoading}
                 className="flex-1 px-4 py-2.5 rounded-xl border border-input bg-background text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
               />

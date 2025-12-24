@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
   try {
     // Parse and validate request body
     const body = await request.json();
-    const { question, currentChapter, language = "tr" } = body as ChatRequest;
+    const { question, currentChapter, language = "tr", referenceText } = body as ChatRequest;
 
     if (!question || typeof question !== "string" || question.trim() === "") {
       return NextResponse.json(
@@ -77,12 +77,16 @@ export async function POST(request: NextRequest) {
     }
 
     // Step 1: Generate embedding for the user's question
-    const queryEmbedding = await generateEmbedding(question.trim());
+    // If there's reference text, include it for better semantic matching
+    const queryForEmbedding = referenceText 
+      ? `${question} ${referenceText.substring(0, 200)}`
+      : question.trim();
+    const queryEmbedding = await generateEmbedding(queryForEmbedding);
 
     // Step 2: Search for similar documents
     const matchedDocuments = await searchSimilarDocuments(queryEmbedding, {
       matchThreshold: 0.25,
-      matchCount: 5, // Reduced for more focused context
+      matchCount: 5,
     });
 
     // Step 3: Build context from matched documents
@@ -90,9 +94,20 @@ export async function POST(request: NextRequest) {
     const sources = extractSources(matchedDocuments);
 
     // Step 4: Prepare messages for OpenAI
-    const userMessageContent = context
-      ? `Context:\n${context}\n\n---\n\nUser Question: ${question}`
-      : `No relevant context was found in the database for this question.\n\nUser Question: ${question}`;
+    let userMessageContent = "";
+    
+    // If there's reference text (selected passage from the book), include it prominently
+    if (referenceText) {
+      userMessageContent = `Selected Passage from the Book:\n"${referenceText}"\n\n`;
+      if (context) {
+        userMessageContent += `Additional Context:\n${context}\n\n---\n\n`;
+      }
+      userMessageContent += `User Question about the passage: ${question}`;
+    } else {
+      userMessageContent = context
+        ? `Context:\n${context}\n\n---\n\nUser Question: ${question}`
+        : `No relevant context was found in the database for this question.\n\nUser Question: ${question}`;
+    }
 
     // Include current chapter context if provided
     const enhancedUserMessage = currentChapter

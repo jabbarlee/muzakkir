@@ -6,6 +6,7 @@ export interface Message {
   role: "user" | "assistant";
   content: string;
   sources?: string[];
+  reference?: string; // Selected text reference from the book
   timestamp: Date;
 }
 
@@ -24,6 +25,7 @@ export interface ChatRequest {
   question: string;
   currentChapter?: string;
   language?: "en" | "tr";
+  referenceText?: string; // Selected text from the book to ask about
 }
 
 /**
