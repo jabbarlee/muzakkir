@@ -32,14 +32,14 @@ const WELCOME_MESSAGES: Record<Language, Message> = {
     id: "welcome",
     role: "assistant",
     content:
-      "Hello! I'm Muzakir, your Risale-i Nur assistant. I can help you understand concepts, explain passages, and answer questions about the text. What would you like to know?",
+      "Hello! I'm your Risale-i Nur assistant. I can help you understand concepts, explain passages, and answer questions about the text. What would you like to know?",
     timestamp: new Date(),
   },
   tr: {
     id: "welcome",
     role: "assistant",
     content:
-      "Merhaba! Ben Müzakir, Risale-i Nur asistanınız. Kavramları anlamanıza, bölümleri açıklamanıza ve metin hakkındaki sorularınızı cevaplamama yardımcı olabilirim. Ne öğrenmek istersiniz?",
+      "Merhaba! Ben Risale-i Nur asistanınızım. Kavramları anlamanıza, bölümleri açıklamanıza ve metin hakkındaki sorularınızı cevaplamama yardımcı olabilirim. Ne öğrenmek istersiniz?",
     timestamp: new Date(),
   },
 };
@@ -394,7 +394,7 @@ export function AIChatPanel({
           </div>
           <div>
             <h2 className="font-semibold text-sm text-card-foreground">
-              Muzakir
+              Assistant
             </h2>
             <p className="text-xs text-muted-foreground">
               {UI_TEXT[language].assistant}
@@ -527,7 +527,7 @@ export function MobileAIChatSheet({
     <Sheet open={isOpen} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="w-full sm:w-96 p-0">
         <SheetHeader className="sr-only">
-          <SheetTitle>Muzakir AI Assistant</SheetTitle>
+          <SheetTitle>AI Assistant</SheetTitle>
         </SheetHeader>
 
         <div className="flex flex-col h-full">
@@ -538,7 +538,7 @@ export function MobileAIChatSheet({
                 <Sparkles className="size-4 text-primary" />
               </div>
               <div>
-                <h2 className="font-semibold text-sm">Muzakir</h2>
+                <h2 className="font-semibold text-sm">Assistant</h2>
                 <p className="text-xs text-muted-foreground">
                   {UI_TEXT[language].assistant}
                 </p>
@@ -653,7 +653,7 @@ export function AIChatToggleButton({
       className="hidden lg:flex items-center gap-2"
     >
       <MessageCircle className="size-4" />
-      <span>Muzakir</span>
+      <span>Assistant</span>
     </Button>
   );
 }

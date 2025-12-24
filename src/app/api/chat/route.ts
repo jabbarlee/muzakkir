@@ -25,7 +25,7 @@ function getOpenAIClient(): OpenAI {
 
 // System prompt templates by language
 const SYSTEM_PROMPTS = {
-  en: `You are Muzakir, a knowledgeable AI assistant for the Risale-i Nur collection by Bediüzzaman Said Nursi.
+  en: `You are a knowledgeable AI assistant for the Risale-i Nur collection by Bediüzzaman Said Nursi.
 
 INSTRUCTIONS:
 1. Base your answers on the Context provided below.
@@ -37,7 +37,7 @@ INSTRUCTIONS:
 
 Provide a brief, helpful response grounded in the Context.`,
 
-  tr: `Sen Müzakir'sin, Bediüzzaman Said Nursi'nin Risale-i Nur Külliyatı için bilgili bir yapay zeka asistanısın.
+  tr: `Bediüzzaman Said Nursi'nin Risale-i Nur Külliyatı için bilgili bir yapay zeka asistanısın.
 
 TALİMATLAR:
 1. Cevaplarını aşağıda sağlanan Bağlam'a dayandır.
