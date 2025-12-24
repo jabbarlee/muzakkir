@@ -29,7 +29,7 @@ export function ChapterList({
           className="flex items-center gap-2 text-sidebar-primary hover:text-sidebar-primary/80 transition-colors"
         >
           <BookOpen className="size-5" />
-          <span className="font-semibold tracking-tight">{bookTitle}</span>
+          <span className="font-semibold tracking-tight">Muzakkir</span>
         </Link>
       </div>
       <div className="flex-1 overflow-y-auto">
