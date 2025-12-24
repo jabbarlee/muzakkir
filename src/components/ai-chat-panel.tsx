@@ -41,15 +41,7 @@ export function AIChatPanel({
 
   return (
     <div
-      className={`
-        fixed inset-y-0 right-0 z-50
-        w-full sm:w-96 
-        bg-card border-l border-border
-        flex flex-col
-        transform transition-transform duration-300 ease-out
-        ${isOpen ? "translate-x-0" : "translate-x-full"}
-        shadow-xl
-      `}
+      className={`fixed inset-y-0 right-0 z-50 w-full sm:w-96 bg-card border-l border-border flex flex-col transform transition-transform duration-300 ease-out shadow-xl ${isOpen ? "translate-x-0" : "translate-x-full"}`}
     >
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-card flex-shrink-0">
@@ -94,14 +86,7 @@ export function AIChatPanel({
             className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
           >
             <div
-              className={`
-                max-w-[85%] rounded-2xl px-4 py-3
-                ${
-                  msg.role === "user"
-                    ? "bg-primary text-primary-foreground rounded-br-md"
-                    : "bg-muted text-muted-foreground rounded-bl-md"
-                }
-              `}
+              className={`max-w-[85%] rounded-2xl px-4 py-3 ${msg.role === "user" ? "bg-primary text-primary-foreground rounded-br-md" : "bg-muted text-muted-foreground rounded-bl-md"}`}
             >
               <p className="text-sm leading-relaxed">{msg.content}</p>
             </div>
@@ -118,9 +103,7 @@ export function AIChatPanel({
               <button
                 key={index}
                 onClick={() => setMessage(question)}
-                className="w-full text-left px-3 py-2 rounded-lg text-sm
-                  bg-accent/50 hover:bg-accent text-accent-foreground
-                  transition-colors duration-200 border border-border/50"
+                className="w-full text-left px-3 py-2 rounded-lg text-sm bg-accent/50 hover:bg-accent text-accent-foreground transition-colors duration-200 border border-border/50"
               >
                 {question}
               </button>
@@ -137,10 +120,7 @@ export function AIChatPanel({
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             placeholder="Ask a question about this chapter..."
-            className="flex-1 px-4 py-2.5 rounded-xl border border-input bg-background
-              text-sm text-foreground placeholder:text-muted-foreground
-              focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent
-              transition-all duration-200"
+            className="flex-1 px-4 py-2.5 rounded-xl border border-input bg-background text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent transition-all duration-200"
           />
           <Button
             size="icon"
@@ -229,9 +209,7 @@ export function MobileAIChatSheet({
                   <button
                     key={index}
                     onClick={() => setMessage(question)}
-                    className="w-full text-left px-3 py-2 rounded-lg text-sm
-                      bg-accent/50 hover:bg-accent text-accent-foreground
-                      transition-colors duration-200 border border-border/50"
+                    className="w-full text-left px-3 py-2 rounded-lg text-sm bg-accent/50 hover:bg-accent text-accent-foreground transition-colors duration-200 border border-border/50"
                   >
                     {question}
                   </button>
@@ -248,9 +226,7 @@ export function MobileAIChatSheet({
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 placeholder="Ask a question..."
-                className="flex-1 px-4 py-2.5 rounded-xl border border-input bg-background
-                  text-sm placeholder:text-muted-foreground
-                  focus:outline-none focus:ring-2 focus:ring-ring"
+                className="flex-1 px-4 py-2.5 rounded-xl border border-input bg-background text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
               />
               <Button
                 size="icon"
