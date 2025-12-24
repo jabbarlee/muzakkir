@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { X, Send, Sparkles, MessageCircle, Loader2, BookOpen } from "lucide-react";
+import { X, Send, Sparkles, MessageCircle, Loader2, BookOpen, Languages } from "lucide-react";
+import ReactMarkdown from "react-markdown";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -10,6 +11,9 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Message, ChatResponse } from "@/lib/types/chat";
+
+// Language type
+type Language = "en" | "tr";
 
 interface AIChatPanelProps {
   isOpen: boolean;
@@ -22,24 +26,90 @@ function generateId(): string {
   return `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 }
 
-// Welcome message
-const WELCOME_MESSAGE: Message = {
-  id: "welcome",
-  role: "assistant",
-  content:
-    "Merhaba! I'm Muzakir, your Risale-i Nur assistant. I can help you understand concepts, explain passages, and answer questions about the text. What would you like to know?",
-  timestamp: new Date(),
+// Welcome messages by language
+const WELCOME_MESSAGES: Record<Language, Message> = {
+  en: {
+    id: "welcome",
+    role: "assistant",
+    content:
+      "Hello! I'm Muzakir, your Risale-i Nur assistant. I can help you understand concepts, explain passages, and answer questions about the text. What would you like to know?",
+    timestamp: new Date(),
+  },
+  tr: {
+    id: "welcome",
+    role: "assistant",
+    content:
+      "Merhaba! Ben Müzakir, Risale-i Nur asistanınız. Kavramları anlamanıza, bölümleri açıklamanıza ve metin hakkındaki sorularınızı cevaplamama yardımcı olabilirim. Ne öğrenmek istersiniz?",
+    timestamp: new Date(),
+  },
 };
 
-// Suggested questions
-const SUGGESTED_QUESTIONS = [
-  "What is the main idea of this chapter?",
-  "Can you explain the parable in this section?",
-  "Summarize the key concepts for me",
-];
+// Suggested questions by language
+const SUGGESTED_QUESTIONS: Record<Language, string[]> = {
+  en: [
+    "What is the main idea of this chapter?",
+    "Can you explain the parable in this section?",
+    "Summarize the key concepts for me",
+  ],
+  tr: [
+    "Bu bölümün ana fikri nedir?",
+    "Bu kısımdaki temsili açıklar mısın?",
+    "Temel kavramları özetler misin?",
+  ],
+};
+
+// UI text by language
+const UI_TEXT: Record<Language, {
+  sourcesUsed: string;
+  thinking: string;
+  suggestedQuestions: string;
+  placeholder: string;
+  grounded: string;
+  readingContext: string;
+  assistant: string;
+}> = {
+  en: {
+    sourcesUsed: "Sources Used",
+    thinking: "Thinking...",
+    suggestedQuestions: "Suggested questions:",
+    placeholder: "Ask a question about this chapter...",
+    grounded: "Answers are grounded in the Risale-i Nur text",
+    readingContext: "Reading context:",
+    assistant: "Your Risale-i Nur assistant",
+  },
+  tr: {
+    sourcesUsed: "Kullanılan Kaynaklar",
+    thinking: "Düşünüyor...",
+    suggestedQuestions: "Önerilen sorular:",
+    placeholder: "Bu bölüm hakkında bir soru sorun...",
+    grounded: "Cevaplar Risale-i Nur metnine dayalıdır",
+    readingContext: "Okuma bağlamı:",
+    assistant: "Risale-i Nur asistanınız",
+  },
+};
+
+// Language toggle component
+function LanguageToggle({
+  language,
+  onToggle,
+}: {
+  language: Language;
+  onToggle: () => void;
+}) {
+  return (
+    <button
+      onClick={onToggle}
+      className="flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium bg-accent/50 hover:bg-accent text-accent-foreground transition-colors border border-border/50"
+      title="Toggle language"
+    >
+      <Languages className="size-3" />
+      <span>{language.toUpperCase()}</span>
+    </button>
+  );
+}
 
 // Sources display component
-function SourcesCard({ sources }: { sources: string[] }) {
+function SourcesCard({ sources, language }: { sources: string[]; language: Language }) {
   if (sources.length === 0) return null;
 
   return (
@@ -47,7 +117,7 @@ function SourcesCard({ sources }: { sources: string[] }) {
       <div className="flex items-center gap-1.5 mb-1.5">
         <BookOpen className="size-3 text-primary" />
         <span className="text-xs font-medium text-muted-foreground">
-          Sources Used
+          {UI_TEXT[language].sourcesUsed}
         </span>
       </div>
       <div className="flex flex-wrap gap-1.5">
@@ -65,21 +135,21 @@ function SourcesCard({ sources }: { sources: string[] }) {
 }
 
 // Loading skeleton for AI response
-function ThinkingSkeleton() {
+function ThinkingSkeleton({ language }: { language: Language }) {
   return (
     <div className="flex justify-start">
       <div className="max-w-[85%] rounded-2xl rounded-bl-md px-4 py-3 bg-muted">
         <div className="flex items-center gap-2">
           <Loader2 className="size-4 animate-spin text-primary" />
-          <span className="text-sm text-muted-foreground">Thinking...</span>
+          <span className="text-sm text-muted-foreground">{UI_TEXT[language].thinking}</span>
         </div>
       </div>
     </div>
   );
 }
 
-// Message bubble component
-function MessageBubble({ message }: { message: Message }) {
+// Message bubble component with markdown support
+function MessageBubble({ message, language }: { message: Message; language: Language }) {
   const isUser = message.role === "user";
 
   return (
@@ -92,12 +162,57 @@ function MessageBubble({ message }: { message: Message }) {
               : "bg-muted text-muted-foreground rounded-bl-md"
           }`}
         >
-          <p className="text-sm leading-relaxed whitespace-pre-wrap">
-            {message.content}
-          </p>
+          {isUser ? (
+            <p className="text-sm leading-relaxed whitespace-pre-wrap">
+              {message.content}
+            </p>
+          ) : (
+            <div className="text-sm leading-relaxed prose-chat">
+              <ReactMarkdown
+                components={{
+                  p: ({ children }) => (
+                    <p className="mb-2 last:mb-0">{children}</p>
+                  ),
+                  strong: ({ children }) => (
+                    <strong className="font-semibold">{children}</strong>
+                  ),
+                  ul: ({ children }) => (
+                    <ul className="list-disc pl-4 mb-2 space-y-1">{children}</ul>
+                  ),
+                  ol: ({ children }) => (
+                    <ol className="list-decimal pl-4 mb-2 space-y-1">{children}</ol>
+                  ),
+                  li: ({ children }) => (
+                    <li className="leading-relaxed">{children}</li>
+                  ),
+                  h1: ({ children }) => (
+                    <h1 className="text-base font-semibold mb-2 mt-3 first:mt-0">{children}</h1>
+                  ),
+                  h2: ({ children }) => (
+                    <h2 className="text-base font-semibold mb-2 mt-3 first:mt-0">{children}</h2>
+                  ),
+                  h3: ({ children }) => (
+                    <h3 className="text-sm font-semibold mb-1 mt-2 first:mt-0">{children}</h3>
+                  ),
+                  blockquote: ({ children }) => (
+                    <blockquote className="border-l-2 border-primary/50 pl-3 italic my-2">
+                      {children}
+                    </blockquote>
+                  ),
+                  code: ({ children }) => (
+                    <code className="bg-background/50 px-1 py-0.5 rounded text-xs">
+                      {children}
+                    </code>
+                  ),
+                }}
+              >
+                {message.content}
+              </ReactMarkdown>
+            </div>
+          )}
         </div>
         {!isUser && message.sources && message.sources.length > 0 && (
-          <SourcesCard sources={message.sources} />
+          <SourcesCard sources={message.sources} language={language} />
         )}
       </div>
     </div>
@@ -105,12 +220,22 @@ function MessageBubble({ message }: { message: Message }) {
 }
 
 // Shared chat logic hook
-function useChat(currentChapter: string | null) {
-  const [messages, setMessages] = useState<Message[]>([WELCOME_MESSAGE]);
+function useChat(currentChapter: string | null, language: Language) {
+  const [messages, setMessages] = useState<Message[]>([WELCOME_MESSAGES[language]]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Update welcome message when language changes
+  useEffect(() => {
+    setMessages((prev) => {
+      if (prev.length === 1 && prev[0].id === "welcome") {
+        return [WELCOME_MESSAGES[language]];
+      }
+      return prev;
+    });
+  }, [language]);
 
   // Auto-scroll to bottom when messages change
   const scrollToBottom = useCallback(() => {
@@ -147,6 +272,7 @@ function useChat(currentChapter: string | null) {
           body: JSON.stringify({
             question: question.trim(),
             currentChapter,
+            language, // Pass language to API
           }),
         });
 
@@ -176,8 +302,9 @@ function useChat(currentChapter: string | null) {
         const errorMessage: Message = {
           id: generateId(),
           role: "assistant",
-          content:
-            "I apologize, but I encountered an error processing your question. Please try again.",
+          content: language === "tr" 
+            ? "Özür dilerim, sorunuzu işlerken bir hata oluştu. Lütfen tekrar deneyin."
+            : "I apologize, but I encountered an error processing your question. Please try again.",
           timestamp: new Date(),
         };
         setMessages((prev) => [...prev, errorMessage]);
@@ -185,7 +312,7 @@ function useChat(currentChapter: string | null) {
         setIsLoading(false);
       }
     },
-    [currentChapter, isLoading]
+    [currentChapter, isLoading, language]
   );
 
   // Handle form submission
@@ -235,6 +362,12 @@ export function AIChatPanel({
   onClose,
   currentChapter,
 }: AIChatPanelProps) {
+  const [language, setLanguage] = useState<Language>("tr");
+  
+  const toggleLanguage = () => {
+    setLanguage((prev) => (prev === "en" ? "tr" : "en"));
+  };
+
   const {
     messages,
     input,
@@ -244,7 +377,7 @@ export function AIChatPanel({
     handleSubmit,
     handleKeyDown,
     handleSuggestedQuestion,
-  } = useChat(currentChapter);
+  } = useChat(currentChapter, language);
 
   // Only show suggested questions if there's only the welcome message
   const showSuggestions = messages.length === 1;
@@ -264,24 +397,27 @@ export function AIChatPanel({
               Muzakir
             </h2>
             <p className="text-xs text-muted-foreground">
-              Your Risale-i Nur assistant
+              {UI_TEXT[language].assistant}
             </p>
           </div>
         </div>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={onClose}
-          className="size-8 text-muted-foreground hover:text-foreground"
-        >
-          <X className="size-4" />
-        </Button>
+        <div className="flex items-center gap-2">
+          <LanguageToggle language={language} onToggle={toggleLanguage} />
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onClose}
+            className="size-8 text-muted-foreground hover:text-foreground"
+          >
+            <X className="size-4" />
+          </Button>
+        </div>
       </div>
 
       {/* Current Chapter Context */}
       {currentChapter && (
         <div className="px-4 py-2 bg-accent/30 border-b border-border flex-shrink-0">
-          <p className="text-xs text-muted-foreground">Reading context:</p>
+          <p className="text-xs text-muted-foreground">{UI_TEXT[language].readingContext}</p>
           <p className="text-sm font-medium text-accent-foreground truncate">
             {currentChapter}
           </p>
@@ -291,19 +427,19 @@ export function AIChatPanel({
       {/* Messages Area */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.map((message) => (
-          <MessageBubble key={message.id} message={message} />
+          <MessageBubble key={message.id} message={message} language={language} />
         ))}
 
-        {isLoading && <ThinkingSkeleton />}
+        {isLoading && <ThinkingSkeleton language={language} />}
 
         {/* Suggested Questions */}
         {showSuggestions && !isLoading && (
           <div className="pt-4">
             <p className="text-xs text-muted-foreground mb-3">
-              Suggested questions:
+              {UI_TEXT[language].suggestedQuestions}
             </p>
             <div className="space-y-2">
-              {SUGGESTED_QUESTIONS.map((question, index) => (
+              {SUGGESTED_QUESTIONS[language].map((question, index) => (
                 <button
                   key={index}
                   onClick={() => handleSuggestedQuestion(question)}
@@ -330,7 +466,7 @@ export function AIChatPanel({
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Ask a question about this chapter..."
+            placeholder={UI_TEXT[language].placeholder}
             disabled={isLoading}
             className="flex-1 px-4 py-2.5 rounded-xl border border-input bg-background text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent transition-all duration-200 disabled:opacity-50"
           />
@@ -348,7 +484,7 @@ export function AIChatPanel({
           </Button>
         </div>
         <p className="text-xs text-muted-foreground mt-2 text-center">
-          Answers are grounded in the Risale-i Nur text
+          {UI_TEXT[language].grounded}
         </p>
       </form>
     </div>
@@ -367,6 +503,12 @@ export function MobileAIChatSheet({
   onOpenChange,
   currentChapter,
 }: MobileAIChatSheetProps) {
+  const [language, setLanguage] = useState<Language>("tr");
+  
+  const toggleLanguage = () => {
+    setLanguage((prev) => (prev === "en" ? "tr" : "en"));
+  };
+
   const {
     messages,
     input,
@@ -376,7 +518,7 @@ export function MobileAIChatSheet({
     handleSubmit,
     handleKeyDown,
     handleSuggestedQuestion,
-  } = useChat(currentChapter);
+  } = useChat(currentChapter, language);
 
   // Only show suggested questions if there's only the welcome message
   const showSuggestions = messages.length === 1;
@@ -390,22 +532,25 @@ export function MobileAIChatSheet({
 
         <div className="flex flex-col h-full">
           {/* Header */}
-          <div className="flex items-center gap-2 px-4 py-3 border-b border-border">
-            <div className="p-1.5 rounded-lg bg-primary/10">
-              <Sparkles className="size-4 text-primary" />
+          <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 rounded-lg bg-primary/10">
+                <Sparkles className="size-4 text-primary" />
+              </div>
+              <div>
+                <h2 className="font-semibold text-sm">Muzakir</h2>
+                <p className="text-xs text-muted-foreground">
+                  {UI_TEXT[language].assistant}
+                </p>
+              </div>
             </div>
-            <div>
-              <h2 className="font-semibold text-sm">Muzakir</h2>
-              <p className="text-xs text-muted-foreground">
-                Your Risale-i Nur assistant
-              </p>
-            </div>
+            <LanguageToggle language={language} onToggle={toggleLanguage} />
           </div>
 
           {/* Current Chapter Context */}
           {currentChapter && (
             <div className="px-4 py-2 bg-accent/30 border-b border-border">
-              <p className="text-xs text-muted-foreground">Reading context:</p>
+              <p className="text-xs text-muted-foreground">{UI_TEXT[language].readingContext}</p>
               <p className="text-sm font-medium truncate">{currentChapter}</p>
             </div>
           )}
@@ -413,19 +558,19 @@ export function MobileAIChatSheet({
           {/* Messages Area */}
           <div className="flex-1 overflow-y-auto p-4 space-y-4">
             {messages.map((message) => (
-              <MessageBubble key={message.id} message={message} />
+              <MessageBubble key={message.id} message={message} language={language} />
             ))}
 
-            {isLoading && <ThinkingSkeleton />}
+            {isLoading && <ThinkingSkeleton language={language} />}
 
             {/* Suggested Questions */}
             {showSuggestions && !isLoading && (
               <div className="pt-4">
                 <p className="text-xs text-muted-foreground mb-3">
-                  Suggested questions:
+                  {UI_TEXT[language].suggestedQuestions}
                 </p>
                 <div className="space-y-2">
-                  {SUGGESTED_QUESTIONS.map((question, index) => (
+                  {SUGGESTED_QUESTIONS[language].map((question, index) => (
                     <button
                       key={index}
                       onClick={() => handleSuggestedQuestion(question)}
@@ -452,7 +597,7 @@ export function MobileAIChatSheet({
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder="Ask a question..."
+                placeholder={UI_TEXT[language].placeholder}
                 disabled={isLoading}
                 className="flex-1 px-4 py-2.5 rounded-xl border border-input bg-background text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
               />

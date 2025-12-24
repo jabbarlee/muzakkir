@@ -23,6 +23,7 @@ export interface ChatResponse {
 export interface ChatRequest {
   question: string;
   currentChapter?: string;
+  language?: "en" | "tr";
 }
 
 /**

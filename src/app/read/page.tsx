@@ -38,7 +38,7 @@ function ChapterList({
       <div className="px-4 border-b border-sidebar-border flex-shrink-0 h-14 flex items-center">
         <div className="flex items-center gap-2 text-sidebar-primary">
           <BookOpen className="size-5" />
-          <span className="font-semibold tracking-tight">Sözler</span>
+          <span className="font-semibold tracking-tight">Muzakkir</span>
         </div>
       </div>
       <div className="flex-1 overflow-y-auto">

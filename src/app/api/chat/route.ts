@@ -23,20 +23,32 @@ function getOpenAIClient(): OpenAI {
   return openaiClient;
 }
 
-// System prompt for the AI assistant with grounding rules
-const SYSTEM_PROMPT = `You are Muzakir, a knowledgeable and helpful AI assistant specialized in the Risale-i Nur collection by Bediüzzaman Said Nursi.
-
-Your role is to help users understand and explore the profound spiritual and philosophical teachings contained in these works.
+// System prompt templates by language
+const SYSTEM_PROMPTS = {
+  en: `You are Muzakir, a knowledgeable AI assistant for the Risale-i Nur collection by Bediüzzaman Said Nursi.
 
 INSTRUCTIONS:
-1. Base your answers on the Context provided below. The Context contains relevant excerpts from the Risale-i Nur.
-2. Synthesize and explain the information from the Context in a clear, helpful manner.
-3. You may explain concepts in simpler terms and provide additional context to help understanding.
-4. If the Context contains relevant passages, use them to construct a comprehensive answer.
-5. Maintain a respectful, scholarly tone appropriate for religious and philosophical discussion.
-6. If the Context truly does not contain any relevant information to the question, acknowledge this and suggest the user try a different question.
+1. Base your answers on the Context provided below.
+2. Be CONCISE and DIRECT. Keep responses short and focused (2-4 paragraphs maximum).
+3. Get to the main point quickly without lengthy introductions.
+4. Use simple, clear language. Avoid unnecessary elaboration.
+5. If the Context doesn't contain relevant information, briefly acknowledge this.
+6. IMPORTANT: Respond in English only.
 
-The Context below contains excerpts that were semantically matched to the user's question. Use this information to provide a helpful, grounded response.`;
+Provide a brief, helpful response grounded in the Context.`,
+
+  tr: `Sen Müzakir'sin, Bediüzzaman Said Nursi'nin Risale-i Nur Külliyatı için bilgili bir yapay zeka asistanısın.
+
+TALİMATLAR:
+1. Cevaplarını aşağıda sağlanan Bağlam'a dayandır.
+2. KISA ve DOĞRUDAN ol. Yanıtları kısa ve odaklı tut (maksimum 2-4 paragraf).
+3. Uzun girişler olmadan ana noktaya hızlıca geç.
+4. Basit ve açık bir dil kullan. Gereksiz ayrıntılardan kaçın.
+5. Bağlam ilgili bilgi içermiyorsa, bunu kısaca belirt.
+6. ÖNEMLİ: Sadece Türkçe yanıt ver.
+
+Bağlam'a dayalı kısa ve yardımcı bir yanıt ver.`,
+};
 
 /**
  * POST /api/chat
@@ -46,7 +58,7 @@ export async function POST(request: NextRequest) {
   try {
     // Parse and validate request body
     const body = await request.json();
-    const { question, currentChapter } = body as ChatRequest;
+    const { question, currentChapter, language = "tr" } = body as ChatRequest;
 
     if (!question || typeof question !== "string" || question.trim() === "") {
       return NextResponse.json(
@@ -70,7 +82,7 @@ export async function POST(request: NextRequest) {
     // Step 2: Search for similar documents
     const matchedDocuments = await searchSimilarDocuments(queryEmbedding, {
       matchThreshold: 0.25,
-      matchCount: 8,
+      matchCount: 5, // Reduced for more focused context
     });
 
     // Step 3: Build context from matched documents
@@ -89,14 +101,16 @@ export async function POST(request: NextRequest) {
 
     // Step 5: Call OpenAI for chat completion
     const openai = getOpenAIClient();
+    const systemPrompt = SYSTEM_PROMPTS[language] || SYSTEM_PROMPTS.tr;
+    
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
-        { role: "system", content: SYSTEM_PROMPT },
+        { role: "system", content: systemPrompt },
         { role: "user", content: enhancedUserMessage },
       ],
       temperature: 0.3, // Lower temperature for more focused, accurate responses
-      max_tokens: 1024,
+      max_tokens: 512, // Limit response length for concise answers
     });
 
     const assistantResponse =
