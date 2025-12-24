@@ -133,6 +133,17 @@
   body {
     @apply bg-background text-foreground;
   }
+
+  /* Text selection styling */
+  ::selection {
+    background-color: oklch(0.45 0.12 35 / 0.25);
+    color: inherit;
+  }
+
+  ::-moz-selection {
+    background-color: oklch(0.45 0.12 35 / 0.25);
+    color: inherit;
+  }
 }
 
 /* Typography for book reading */
@@ -162,7 +173,8 @@
 
 /* Arabic text styling - Quranic verses */
 .arabic-verse {
-  font-family: var(--font-arabic), "Amiri", "Traditional Arabic", "Scheherazade", serif;
+  font-family: var(--font-arabic), "Amiri", "Traditional Arabic", "Scheherazade",
+    serif;
   direction: rtl;
   text-align: center;
   font-size: 1.75rem;
