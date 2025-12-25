@@ -83,5 +83,37 @@ export interface DocumentMatch {
 export interface SearchOptions {
   matchThreshold?: number;
   matchCount?: number;
+  chapterId?: number; // Optional filter by chapter
+}
+
+// ============================================
+// Query Understanding Types
+// ============================================
+
+/**
+ * Result of analyzing a user query for intent and chapter references
+ */
+export interface QueryUnderstanding {
+  /** Whether the user explicitly references a specific chapter */
+  referencesSpecificChapter: boolean;
+  /** The chapter number if identified (e.g., 4 for "4th chapter") */
+  chapterNumber: number | null;
+  /** The type of chapter (söz, mektup, lem'a, şua) */
+  chapterType: "söz" | "mektup" | "lem'a" | "şua" | null;
+  /** Whether the question relates to the user's current reading context */
+  relatedToCurrentContext: boolean;
+  /** The core semantic query to use for vector search */
+  searchQuery: string;
+}
+
+/**
+ * Chapter with its full content for context injection
+ */
+export interface ChapterWithContent {
+  id: number;
+  title: string;
+  chapterNumber: number;
+  bookTitle: string;
+  content: string;
 }
 
