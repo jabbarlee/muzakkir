@@ -62,6 +62,7 @@ export interface ChatRequest {
   question: string;
   currentChapter?: string;
   language?: "en" | "tr";
+  responseFormat?: "friendly" | "professional";
   referenceText?: string; // Selected text from the book to ask about
 }
 
