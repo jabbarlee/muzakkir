@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { X, Send, Sparkles, MessageCircle, Loader2, BookOpen, Languages, Quote } from "lucide-react";
+import { X, Send, Sparkles, MessageCircle, Loader2, BookOpen, Languages, Quote, Smile, Briefcase, ChevronDown } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { Button } from "@/components/ui/button";
 import {
@@ -10,10 +10,22 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Message, ChatResponse } from "@/lib/types/chat";
 
 // Language type
 type Language = "en" | "tr";
+
+// Response format type
+type ResponseFormat = "friendly" | "professional";
 
 interface AIChatPanelProps {
   isOpen: boolean;
@@ -80,6 +92,10 @@ const UI_TEXT: Record<Language, {
   assistant: string;
   selectedText: string;
   askAboutThis: string;
+  language: string;
+  responseFormat: string;
+  friendly: string;
+  professional: string;
 }> = {
   en: {
     sourcesUsed: "Sources Used",
@@ -92,6 +108,10 @@ const UI_TEXT: Record<Language, {
     assistant: "Your Risale-i Nur assistant",
     selectedText: "Selected text:",
     askAboutThis: "Explain this passage",
+    language: "Language",
+    responseFormat: "Response Format",
+    friendly: "Friendly",
+    professional: "Professional",
   },
   tr: {
     sourcesUsed: "Kullanılan Kaynaklar",
@@ -104,26 +124,88 @@ const UI_TEXT: Record<Language, {
     assistant: "Risale-i Nur asistanınız",
     selectedText: "Seçili metin:",
     askAboutThis: "Bu pasajı açıkla",
+    language: "Dil",
+    responseFormat: "Yanıt Formatı",
+    friendly: "Samimi",
+    professional: "Profesyonel",
   },
 };
 
-// Language toggle component
-function LanguageToggle({
+// Language dropdown component
+function LanguageDropdown({
   language,
-  onToggle,
+  onChange,
+  uiText,
 }: {
   language: Language;
-  onToggle: () => void;
+  onChange: (language: Language) => void;
+  uiText: typeof UI_TEXT[Language];
 }) {
   return (
-    <button
-      onClick={onToggle}
-      className="flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium bg-accent/50 hover:bg-accent text-accent-foreground transition-colors border border-border/50"
-      title="Toggle language"
-    >
-      <Languages className="size-3" />
-      <span>{language.toUpperCase()}</span>
-    </button>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          className="flex items-center gap-1 px-2 py-1.5 rounded-md text-xs font-medium bg-accent/50 hover:bg-accent text-accent-foreground transition-colors border border-border/50"
+          title={uiText.language}
+        >
+          <Languages className="size-3" />
+          <span>{language.toUpperCase()}</span>
+          <ChevronDown className="size-3 opacity-50" />
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-32">
+        <DropdownMenuLabel className="text-xs">{uiText.language}</DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <DropdownMenuRadioGroup value={language} onValueChange={(v) => onChange(v as Language)}>
+          <DropdownMenuRadioItem value="en">English</DropdownMenuRadioItem>
+          <DropdownMenuRadioItem value="tr">Türkçe</DropdownMenuRadioItem>
+        </DropdownMenuRadioGroup>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+// Response format dropdown component
+function ResponseFormatDropdown({
+  format,
+  onChange,
+  uiText,
+}: {
+  format: ResponseFormat;
+  onChange: (format: ResponseFormat) => void;
+  uiText: typeof UI_TEXT[Language];
+}) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          className="flex items-center gap-1 px-2 py-1.5 rounded-md text-xs font-medium bg-accent/50 hover:bg-accent text-accent-foreground transition-colors border border-border/50"
+          title={uiText.responseFormat}
+        >
+          {format === "friendly" ? (
+            <Smile className="size-3" />
+          ) : (
+            <Briefcase className="size-3" />
+          )}
+          <span>{format === "friendly" ? uiText.friendly : uiText.professional}</span>
+          <ChevronDown className="size-3 opacity-50" />
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" className="w-40">
+        <DropdownMenuLabel className="text-xs">{uiText.responseFormat}</DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <DropdownMenuRadioGroup value={format} onValueChange={(v) => onChange(v as ResponseFormat)}>
+          <DropdownMenuRadioItem value="friendly" className="flex items-center gap-2">
+            <Smile className="size-3" />
+            {uiText.friendly}
+          </DropdownMenuRadioItem>
+          <DropdownMenuRadioItem value="professional" className="flex items-center gap-2">
+            <Briefcase className="size-3" />
+            {uiText.professional}
+          </DropdownMenuRadioItem>
+        </DropdownMenuRadioGroup>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 
@@ -293,6 +375,7 @@ function MessageBubble({ message, language }: { message: Message; language: Lang
 function useChat(
   currentChapter: string | null,
   language: Language,
+  responseFormat: ResponseFormat,
   referenceText: string | null,
   onReferenceClear?: () => void
 ) {
@@ -354,6 +437,7 @@ function useChat(
             question: question.trim(),
             currentChapter,
             language,
+            responseFormat,
             referenceText: reference,
           }),
         });
@@ -393,7 +477,7 @@ function useChat(
         setIsLoading(false);
       }
     },
-    [currentChapter, isLoading, language, onReferenceClear]
+    [currentChapter, isLoading, language, responseFormat, onReferenceClear]
   );
 
   // Handle form submission
@@ -458,10 +542,7 @@ export function AIChatPanel({
   onReferenceClear,
 }: AIChatPanelProps) {
   const [language, setLanguage] = useState<Language>("tr");
-  
-  const toggleLanguage = () => {
-    setLanguage((prev) => (prev === "en" ? "tr" : "en"));
-  };
+  const [responseFormat, setResponseFormat] = useState<ResponseFormat>("friendly");
 
   const {
     messages,
@@ -473,7 +554,7 @@ export function AIChatPanel({
     handleKeyDown,
     handleSuggestedQuestion,
     handleAskAboutReference,
-  } = useChat(currentChapter, language, referenceText || null, onReferenceClear);
+  } = useChat(currentChapter, language, responseFormat, referenceText || null, onReferenceClear);
 
   const showSuggestions = messages.length === 1 && !referenceText;
 
@@ -496,17 +577,14 @@ export function AIChatPanel({
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <LanguageToggle language={language} onToggle={toggleLanguage} />
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onClose}
-            className="size-8 text-muted-foreground hover:text-foreground"
-          >
-            <X className="size-4" />
-          </Button>
-        </div>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={onClose}
+          className="size-8 text-muted-foreground hover:text-foreground"
+        >
+          <X className="size-4" />
+        </Button>
       </div>
 
       {/* Current Chapter Context */}
@@ -565,6 +643,18 @@ export function AIChatPanel({
         onSubmit={handleSubmit}
         className="p-4 border-t border-border bg-card flex-shrink-0"
       >
+        <div className="flex items-center gap-2 mb-3">
+          <ResponseFormatDropdown
+            format={responseFormat}
+            onChange={setResponseFormat}
+            uiText={UI_TEXT[language]}
+          />
+          <LanguageDropdown
+            language={language}
+            onChange={setLanguage}
+            uiText={UI_TEXT[language]}
+          />
+        </div>
         <div className="flex gap-2">
           <input
             type="text"
@@ -605,10 +695,7 @@ export function MobileAIChatSheet({
   onReferenceClear,
 }: MobileAIChatSheetProps) {
   const [language, setLanguage] = useState<Language>("tr");
-  
-  const toggleLanguage = () => {
-    setLanguage((prev) => (prev === "en" ? "tr" : "en"));
-  };
+  const [responseFormat, setResponseFormat] = useState<ResponseFormat>("friendly");
 
   const {
     messages,
@@ -620,7 +707,7 @@ export function MobileAIChatSheet({
     handleKeyDown,
     handleSuggestedQuestion,
     handleAskAboutReference,
-  } = useChat(currentChapter, language, referenceText || null, onReferenceClear);
+  } = useChat(currentChapter, language, responseFormat, referenceText || null, onReferenceClear);
 
   const showSuggestions = messages.length === 1 && !referenceText;
 
@@ -645,7 +732,6 @@ export function MobileAIChatSheet({
                 </p>
               </div>
             </div>
-            <LanguageToggle language={language} onToggle={toggleLanguage} />
           </div>
 
           {/* Current Chapter Context */}
@@ -702,6 +788,18 @@ export function MobileAIChatSheet({
             onSubmit={handleSubmit}
             className="p-4 border-t border-border"
           >
+            <div className="flex items-center gap-2 mb-3">
+              <ResponseFormatDropdown
+                format={responseFormat}
+                onChange={setResponseFormat}
+                uiText={UI_TEXT[language]}
+              />
+              <LanguageDropdown
+                language={language}
+                onChange={setLanguage}
+                uiText={UI_TEXT[language]}
+              />
+            </div>
             <div className="flex gap-2">
               <input
                 type="text"
@@ -725,6 +823,9 @@ export function MobileAIChatSheet({
                 )}
               </Button>
             </div>
+            <p className="text-xs text-muted-foreground mt-2 text-center">
+              {UI_TEXT[language].grounded}
+            </p>
           </form>
         </div>
       </SheetContent>

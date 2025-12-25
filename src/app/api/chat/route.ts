@@ -9,7 +9,11 @@ import {
   extractEnhancedSources,
 } from "@/lib/services/vector-store";
 import { analyzeQuery } from "@/lib/services/query-understanding";
-import { ChatRequest, ChatResponse, ChapterWithContent } from "@/lib/types/chat";
+import {
+  ChatRequest,
+  ChatResponse,
+  ChapterWithContent,
+} from "@/lib/types/chat";
 
 // Lazy-initialized OpenAI client to avoid build-time errors
 let openaiClient: OpenAI | null = null;
@@ -26,33 +30,67 @@ function getOpenAIClient(): OpenAI {
   return openaiClient;
 }
 
-// System prompt templates by language
+// System prompt templates by language and response format
 const SYSTEM_PROMPTS = {
-  en: `You are a knowledgeable AI assistant for the Risale-i Nur collection by Bediüzzaman Said Nursi.
+  en: {
+    friendly: `You are a friendly and approachable AI assistant for the Risale-i Nur collection by Bediüzzaman Said Nursi.
 
 INSTRUCTIONS:
 1. Base your answers PRIMARILY on the Context provided below.
 2. When a PRIMARY SOURCE is provided, that is the main chapter the user is asking about - focus your answer on that content.
 3. Be CONCISE and DIRECT. Keep responses short and focused (2-4 paragraphs maximum).
 4. Get to the main point quickly without lengthy introductions.
-5. Use simple, clear language. Avoid unnecessary elaboration.
-6. If the Context doesn't contain relevant information, briefly acknowledge this.
-7. IMPORTANT: Respond in English only.
+5. Use a warm, conversational tone. Be encouraging and supportive.
+6. Feel free to use gentle expressions and relatable examples.
+7. If the Context doesn't contain relevant information, kindly acknowledge this.
+8. IMPORTANT: Respond in English only.
 
-Provide a brief, helpful response grounded in the Context.`,
+Provide a brief, helpful response grounded in the Context with a friendly touch.`,
 
-  tr: `Bediüzzaman Said Nursi'nin Risale-i Nur Külliyatı için bilgili bir yapay zeka asistanısın.
+    professional: `You are a knowledgeable and scholarly AI assistant for the Risale-i Nur collection by Bediüzzaman Said Nursi.
+
+INSTRUCTIONS:
+1. Base your answers PRIMARILY on the Context provided below.
+2. When a PRIMARY SOURCE is provided, that is the main chapter the user is asking about - focus your answer on that content.
+3. Be CONCISE and DIRECT. Keep responses short and focused (2-4 paragraphs maximum).
+4. Get to the main point quickly without lengthy introductions.
+5. Maintain a formal, academic tone. Use precise theological and philosophical terminology.
+6. Structure your response clearly with well-organized points.
+7. If the Context doesn't contain relevant information, clearly acknowledge this.
+8. IMPORTANT: Respond in English only.
+
+Provide a brief, scholarly response grounded in the Context.`,
+  },
+
+  tr: {
+    friendly: `Bediüzzaman Said Nursi'nin Risale-i Nur Külliyatı için samimi ve yaklaşılabilir bir yapay zeka asistanısın.
 
 TALİMATLAR:
 1. Cevaplarını ÖNCELİKLE aşağıda sağlanan Bağlam'a dayandır.
 2. BİRİNCİL KAYNAK sağlandığında, bu kullanıcının sorduğu ana bölümdür - cevabını bu içeriğe odakla.
 3. KISA ve DOĞRUDAN ol. Yanıtları kısa ve odaklı tut (maksimum 2-4 paragraf).
 4. Uzun girişler olmadan ana noktaya hızlıca geç.
-5. Basit ve açık bir dil kullan. Gereksiz ayrıntılardan kaçın.
-6. Bağlam ilgili bilgi içermiyorsa, bunu kısaca belirt.
-7. ÖNEMLİ: Sadece Türkçe yanıt ver.
+5. Sıcak ve samimi bir üslup kullan. Cesaretlendirici ve destekleyici ol.
+6. Nazik ifadeler ve anlaşılır örnekler kullanmaktan çekinme.
+7. Bağlam ilgili bilgi içermiyorsa, bunu nazikçe belirt.
+8. ÖNEMLİ: Sadece Türkçe yanıt ver.
 
-Bağlam'a dayalı kısa ve yardımcı bir yanıt ver.`,
+Bağlam'a dayalı, samimi bir dokunuşla kısa ve yardımcı bir yanıt ver.`,
+
+    professional: `Bediüzzaman Said Nursi'nin Risale-i Nur Külliyatı için bilgili ve akademik bir yapay zeka asistanısın.
+
+TALİMATLAR:
+1. Cevaplarını ÖNCELİKLE aşağıda sağlanan Bağlam'a dayandır.
+2. BİRİNCİL KAYNAK sağlandığında, bu kullanıcının sorduğu ana bölümdür - cevabını bu içeriğe odakla.
+3. KISA ve DOĞRUDAN ol. Yanıtları kısa ve odaklı tut (maksimum 2-4 paragraf).
+4. Uzun girişler olmadan ana noktaya hızlıca geç.
+5. Resmi ve akademik bir üslup kullan. Kesin teolojik ve felsefi terminoloji kullan.
+6. Yanıtını iyi organize edilmiş noktalarla net bir şekilde yapılandır.
+7. Bağlam ilgili bilgi içermiyorsa, bunu açıkça belirt.
+8. ÖNEMLİ: Sadece Türkçe yanıt ver.
+
+Bağlam'a dayalı kısa ve akademik bir yanıt ver.`,
+  },
 };
 
 /**
@@ -63,7 +101,13 @@ export async function POST(request: NextRequest) {
   try {
     // Parse and validate request body
     const body = await request.json();
-    const { question, currentChapter, language = "tr", referenceText } = body as ChatRequest;
+    const {
+      question,
+      currentChapter,
+      language = "tr",
+      responseFormat = "friendly",
+      referenceText,
+    } = body as ChatRequest;
 
     if (!question || typeof question !== "string" || question.trim() === "") {
       return NextResponse.json(
@@ -88,7 +132,10 @@ export async function POST(request: NextRequest) {
     // Step 2: Fetch primary chapter content if a specific chapter is referenced
     let primaryChapter: ChapterWithContent | null = null;
 
-    if (queryAnalysis.referencesSpecificChapter && queryAnalysis.chapterNumber) {
+    if (
+      queryAnalysis.referencesSpecificChapter &&
+      queryAnalysis.chapterNumber
+    ) {
       // User is asking about a specific chapter
       primaryChapter = await findChapterByNumber(
         queryAnalysis.chapterNumber,
@@ -107,7 +154,7 @@ export async function POST(request: NextRequest) {
     const searchQuery = referenceText
       ? `${queryAnalysis.searchQuery} ${referenceText.substring(0, 200)}`
       : queryAnalysis.searchQuery;
-    
+
     const queryEmbedding = await generateEmbedding(searchQuery);
 
     // Step 4: Search for related documents
@@ -144,7 +191,8 @@ export async function POST(request: NextRequest) {
 
     // Step 7: Call OpenAI for chat completion
     const openai = getOpenAIClient();
-    const systemPrompt = SYSTEM_PROMPTS[language] || SYSTEM_PROMPTS.tr;
+    const langPrompts = SYSTEM_PROMPTS[language] || SYSTEM_PROMPTS.tr;
+    const systemPrompt = langPrompts[responseFormat] || langPrompts.friendly;
 
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
