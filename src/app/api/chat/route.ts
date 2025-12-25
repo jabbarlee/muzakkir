@@ -3,10 +3,13 @@ import OpenAI from "openai";
 import {
   generateEmbedding,
   searchSimilarDocuments,
-  buildContext,
-  extractSources,
+  findChapterByNumber,
+  findChapterByTitle,
+  buildEnhancedContext,
+  extractEnhancedSources,
 } from "@/lib/services/vector-store";
-import { ChatRequest, ChatResponse } from "@/lib/types/chat";
+import { analyzeQuery } from "@/lib/services/query-understanding";
+import { ChatRequest, ChatResponse, ChapterWithContent } from "@/lib/types/chat";
 
 // Lazy-initialized OpenAI client to avoid build-time errors
 let openaiClient: OpenAI | null = null;
@@ -28,31 +31,33 @@ const SYSTEM_PROMPTS = {
   en: `You are a knowledgeable AI assistant for the Risale-i Nur collection by Bediüzzaman Said Nursi.
 
 INSTRUCTIONS:
-1. Base your answers on the Context provided below.
-2. Be CONCISE and DIRECT. Keep responses short and focused (2-4 paragraphs maximum).
-3. Get to the main point quickly without lengthy introductions.
-4. Use simple, clear language. Avoid unnecessary elaboration.
-5. If the Context doesn't contain relevant information, briefly acknowledge this.
-6. IMPORTANT: Respond in English only.
+1. Base your answers PRIMARILY on the Context provided below.
+2. When a PRIMARY SOURCE is provided, that is the main chapter the user is asking about - focus your answer on that content.
+3. Be CONCISE and DIRECT. Keep responses short and focused (2-4 paragraphs maximum).
+4. Get to the main point quickly without lengthy introductions.
+5. Use simple, clear language. Avoid unnecessary elaboration.
+6. If the Context doesn't contain relevant information, briefly acknowledge this.
+7. IMPORTANT: Respond in English only.
 
 Provide a brief, helpful response grounded in the Context.`,
 
   tr: `Bediüzzaman Said Nursi'nin Risale-i Nur Külliyatı için bilgili bir yapay zeka asistanısın.
 
 TALİMATLAR:
-1. Cevaplarını aşağıda sağlanan Bağlam'a dayandır.
-2. KISA ve DOĞRUDAN ol. Yanıtları kısa ve odaklı tut (maksimum 2-4 paragraf).
-3. Uzun girişler olmadan ana noktaya hızlıca geç.
-4. Basit ve açık bir dil kullan. Gereksiz ayrıntılardan kaçın.
-5. Bağlam ilgili bilgi içermiyorsa, bunu kısaca belirt.
-6. ÖNEMLİ: Sadece Türkçe yanıt ver.
+1. Cevaplarını ÖNCELİKLE aşağıda sağlanan Bağlam'a dayandır.
+2. BİRİNCİL KAYNAK sağlandığında, bu kullanıcının sorduğu ana bölümdür - cevabını bu içeriğe odakla.
+3. KISA ve DOĞRUDAN ol. Yanıtları kısa ve odaklı tut (maksimum 2-4 paragraf).
+4. Uzun girişler olmadan ana noktaya hızlıca geç.
+5. Basit ve açık bir dil kullan. Gereksiz ayrıntılardan kaçın.
+6. Bağlam ilgili bilgi içermiyorsa, bunu kısaca belirt.
+7. ÖNEMLİ: Sadece Türkçe yanıt ver.
 
 Bağlam'a dayalı kısa ve yardımcı bir yanıt ver.`,
 };
 
 /**
  * POST /api/chat
- * Handles RAG-based chat requests
+ * Handles RAG-based chat requests with chapter-aware context
  */
 export async function POST(request: NextRequest) {
   try {
@@ -76,26 +81,48 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Step 1: Generate embedding for the user's question
-    // If there's reference text, include it for better semantic matching
-    const queryForEmbedding = referenceText 
-      ? `${question} ${referenceText.substring(0, 200)}`
-      : question.trim();
-    const queryEmbedding = await generateEmbedding(queryForEmbedding);
+    // Step 1: Analyze the query to understand intent
+    const queryAnalysis = await analyzeQuery(question, currentChapter);
+    console.log("Query analysis:", queryAnalysis);
 
-    // Step 2: Search for similar documents
+    // Step 2: Fetch primary chapter content if a specific chapter is referenced
+    let primaryChapter: ChapterWithContent | null = null;
+
+    if (queryAnalysis.referencesSpecificChapter && queryAnalysis.chapterNumber) {
+      // User is asking about a specific chapter
+      primaryChapter = await findChapterByNumber(
+        queryAnalysis.chapterNumber,
+        queryAnalysis.chapterType
+      );
+      console.log("Found primary chapter:", primaryChapter?.title);
+    } else if (queryAnalysis.relatedToCurrentContext && currentChapter) {
+      // User is asking about what they're currently reading
+      // Try to find the chapter by its title
+      primaryChapter = await findChapterByTitle(currentChapter);
+      console.log("Found current chapter:", primaryChapter?.title);
+    }
+
+    // Step 3: Generate embedding for semantic search
+    // Use the cleaned search query from analysis, or the original question
+    const searchQuery = referenceText
+      ? `${queryAnalysis.searchQuery} ${referenceText.substring(0, 200)}`
+      : queryAnalysis.searchQuery;
+    
+    const queryEmbedding = await generateEmbedding(searchQuery);
+
+    // Step 4: Search for related documents
     const matchedDocuments = await searchSimilarDocuments(queryEmbedding, {
       matchThreshold: 0.25,
-      matchCount: 5,
+      matchCount: primaryChapter ? 3 : 5, // Fewer if we have primary content
     });
 
-    // Step 3: Build context from matched documents
-    const context = buildContext(matchedDocuments);
-    const sources = extractSources(matchedDocuments);
+    // Step 5: Build enhanced context with proper prioritization
+    const context = buildEnhancedContext(primaryChapter, matchedDocuments);
+    const sources = extractEnhancedSources(primaryChapter, matchedDocuments);
 
-    // Step 4: Prepare messages for OpenAI
+    // Step 6: Prepare messages for OpenAI
     let userMessageContent = "";
-    
+
     // If there's reference text (selected passage from the book), include it prominently
     if (referenceText) {
       userMessageContent = `Selected Passage from the Book:\n"${referenceText}"\n\n`;
@@ -109,15 +136,16 @@ export async function POST(request: NextRequest) {
         : `No relevant context was found in the database for this question.\n\nUser Question: ${question}`;
     }
 
-    // Include current chapter context if provided
-    const enhancedUserMessage = currentChapter
-      ? `${userMessageContent}\n\n(The user is currently reading: ${currentChapter})`
-      : userMessageContent;
+    // Include current chapter context if provided and not already included
+    const enhancedUserMessage =
+      currentChapter && !primaryChapter
+        ? `${userMessageContent}\n\n(The user is currently reading: ${currentChapter})`
+        : userMessageContent;
 
-    // Step 5: Call OpenAI for chat completion
+    // Step 7: Call OpenAI for chat completion
     const openai = getOpenAIClient();
     const systemPrompt = SYSTEM_PROMPTS[language] || SYSTEM_PROMPTS.tr;
-    
+
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
@@ -125,14 +153,14 @@ export async function POST(request: NextRequest) {
         { role: "user", content: enhancedUserMessage },
       ],
       temperature: 0.3, // Lower temperature for more focused, accurate responses
-      max_tokens: 512, // Limit response length for concise answers
+      max_tokens: 700, // Slightly higher to allow for comprehensive chapter explanations
     });
 
     const assistantResponse =
       completion.choices[0]?.message?.content ||
       "I apologize, but I was unable to generate a response. Please try again.";
 
-    // Step 6: Return response with sources
+    // Step 8: Return response with sources
     const response: ChatResponse = {
       response: assistantResponse,
       sources: sources,
@@ -164,4 +192,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-
