@@ -22,9 +22,17 @@ export default function Home() {
                 Muzakkir
               </span>
             </div>
-            <Button asChild>
-              <Link href="/read">Start Reading</Link>
-            </Button>
+            <div className="flex items-center gap-3">
+              <Button asChild variant="ghost">
+                <Link href="/signin">Sign In</Link>
+              </Button>
+              <Button asChild variant="outline">
+                <Link href="/signup">Sign Up</Link>
+              </Button>
+              <Button asChild>
+                <Link href="/read">Start Reading</Link>
+              </Button>
+            </div>
           </div>
         </div>
       </nav>
