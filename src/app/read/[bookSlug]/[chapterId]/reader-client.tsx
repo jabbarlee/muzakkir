@@ -20,6 +20,7 @@ import {
 } from "@/components/ai-chat-panel";
 import { ChapterList } from "@/components/chapter-list";
 import { SelectionPopup } from "@/components/selection-popup";
+import { DictionaryPopover } from "@/components/dictionary-popover";
 import { processContent } from "@/lib/content-processor";
 import { Book, Chapter } from "@/lib/types/chat";
 
@@ -46,12 +47,19 @@ export function ReaderClient({
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isMobileChatOpen, setIsMobileChatOpen] = useState(false);
 
-  // Text selection state
+  // Text selection state (for longer selections - AI chat)
   const [selectionPopup, setSelectionPopup] = useState<{
     visible: boolean;
     x: number;
     y: number;
     text: string;
+  } | null>(null);
+
+  // Dictionary popup state (for word lookups)
+  const [dictionaryPopup, setDictionaryPopup] = useState<{
+    word: string;
+    x: number;
+    y: number;
   } | null>(null);
 
   // Reference text to send to chat
@@ -60,27 +68,89 @@ export function ReaderClient({
   // Process content with memoization
   const content = useMemo(() => processContent(rawContent), [rawContent]);
 
-  // Handle text selection
+  /**
+   * Count words in a text string
+   */
+  const countWords = useCallback((text: string): number => {
+    return text.split(/\s+/).filter((word) => word.length > 0).length;
+  }, []);
+
+  /**
+   * Handle text selection - distinguishes between:
+   * - Word selection (1-2 words): Show dictionary popup
+   * - Longer selection (>10 chars, >2 words): Show "Ask about this" popup
+   */
   const handleTextSelection = useCallback(() => {
     const selection = window.getSelection();
     const text = selection?.toString().trim();
 
-    if (text && text.length > 10 && text.length < 1000) {
+    if (!text) {
+      setSelectionPopup(null);
+      return;
+    }
+
+    const wordCount = countWords(text);
+    const range = selection?.getRangeAt(0);
+    const rect = range?.getBoundingClientRect();
+
+    if (!rect) {
+      setSelectionPopup(null);
+      return;
+    }
+
+    // Word selection (1-2 words): Show dictionary popup
+    if (wordCount <= 2 && text.length >= 2 && text.length <= 50) {
+      // Extract the first word for dictionary lookup
+      const firstWord = text.split(/\s+/)[0];
+      if (firstWord && firstWord.length >= 2) {
+        setDictionaryPopup({
+          word: firstWord,
+          x: rect.left + rect.width / 2,
+          y: rect.bottom,
+        });
+        setSelectionPopup(null);
+        return;
+      }
+    }
+
+    // Longer selection (>10 chars and >2 words): Show "Ask about this" popup
+    if (text.length > 10 && text.length < 1000 && wordCount > 2) {
+      setSelectionPopup({
+        visible: true,
+        x: rect.left + rect.width / 2,
+        y: rect.top - 10,
+        text,
+      });
+      setDictionaryPopup(null);
+    } else {
+      setSelectionPopup(null);
+    }
+  }, [countWords]);
+
+  /**
+   * Handle double-click on a word for dictionary lookup
+   */
+  const handleDoubleClick = useCallback((e: MouseEvent) => {
+    const selection = window.getSelection();
+    const text = selection?.toString().trim();
+
+    if (text && text.length >= 2 && countWords(text) <= 2) {
+      // Close any existing popups
+      setSelectionPopup(null);
+
       const range = selection?.getRangeAt(0);
       const rect = range?.getBoundingClientRect();
 
       if (rect) {
-        setSelectionPopup({
-          visible: true,
+        const firstWord = text.split(/\s+/)[0];
+        setDictionaryPopup({
+          word: firstWord,
           x: rect.left + rect.width / 2,
-          y: rect.top - 10,
-          text,
+          y: rect.bottom,
         });
       }
-    } else {
-      setSelectionPopup(null);
     }
-  }, []);
+  }, [countWords]);
 
   // Handle asking about selected text
   const handleAskAboutSelection = useCallback(() => {
@@ -116,6 +186,17 @@ export function ReaderClient({
     return () => document.removeEventListener("mouseup", handleMouseUp);
   }, [handleTextSelection]);
 
+  // Add double-click listener for word lookup
+  useEffect(() => {
+    const dblClickHandler = (e: MouseEvent) => {
+      // Small delay to ensure selection is complete
+      setTimeout(() => handleDoubleClick(e), 10);
+    };
+
+    document.addEventListener("dblclick", dblClickHandler);
+    return () => document.removeEventListener("dblclick", dblClickHandler);
+  }, [handleDoubleClick]);
+
   // Scroll to top when chapter changes
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -127,12 +208,21 @@ export function ReaderClient({
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Selection Popup */}
+      {/* Selection Popup (for longer selections - AI chat) */}
       {selectionPopup?.visible && (
         <SelectionPopup
           position={{ x: selectionPopup.x, y: selectionPopup.y }}
           onAskAbout={handleAskAboutSelection}
           onClose={() => setSelectionPopup(null)}
+        />
+      )}
+
+      {/* Dictionary Popover (for word lookups) */}
+      {dictionaryPopup && (
+        <DictionaryPopover
+          word={dictionaryPopup.word}
+          position={{ x: dictionaryPopup.x, y: dictionaryPopup.y }}
+          onClose={() => setDictionaryPopup(null)}
         />
       )}
 
