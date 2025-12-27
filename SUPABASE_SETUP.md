@@ -89,7 +89,51 @@ To configure email settings:
 8. Copy the **Client ID** and **Client Secret**
 9. Paste them into your Supabase Google provider settings
 
-## Step 5: Configure Site URL and Redirect URLs
+## Step 5: Configure Row Level Security (RLS) for Database Access
+
+**IMPORTANT**: Your database tables need RLS policies to allow the publishable key to read data.
+
+### Quick Setup (Copy & Paste):
+
+1. In your Supabase dashboard, go to **SQL Editor**
+2. Click **New Query**
+3. Copy and paste the contents of `SUPABASE_RLS_SETUP.sql` (in your project root)
+4. Click **Run** or press `Cmd/Ctrl + Enter`
+
+### What This Does:
+
+This sets up policies to allow public **read-only** access to your tables:
+- `books` - Book information
+- `chapters` - Chapter data
+- `paragraphs` - Paragraph content
+- `dictionary` - Dictionary entries
+- `documents` - Vector search data
+
+### Manual Setup (Alternative):
+
+If you prefer to do it manually, run this for each table:
+
+```sql
+-- Example for the 'books' table:
+ALTER TABLE books ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Allow public read access to books"
+ON books FOR SELECT TO anon USING (true);
+```
+
+Repeat for all tables: `books`, `chapters`, `paragraphs`, `dictionary`, `documents`.
+
+### Verify It's Working:
+
+After setting up RLS, test by running this query in SQL Editor:
+
+```sql
+SELECT COUNT(*) FROM books;
+```
+
+If you see a number (not an error), RLS is working! ✅
+
+## Step 6: Configure Site URL and Redirect URLs
 
 1. Go to **Authentication** > **URL Configuration**
 2. Set your **Site URL** to:
@@ -99,7 +143,7 @@ To configure email settings:
    - Development: `http://localhost:3000/auth/callback`
    - Production: `https://yourapp.com/auth/callback`
 
-## Step 6: Update .gitignore
+## Step 7: Update .gitignore
 
 Make sure your `.gitignore` file includes:
 
@@ -110,7 +154,7 @@ Make sure your `.gitignore` file includes:
 
 **⚠️ IMPORTANT:** Never commit your `.env.local` file to version control!
 
-## Step 7: Restart Development Server
+## Step 8: Restart Development Server
 
 After setting up your environment variables, restart your development server:
 
@@ -298,6 +342,19 @@ Run this SQL in the Supabase SQL Editor (Dashboard > SQL Editor).
 - Check the Auth logs in Supabase dashboard: **Authentication** > **Logs**
 - Verify network requests in browser DevTools
 - Check for any RLS policy issues if using custom tables
+
+### Database queries returning empty or errors
+
+- **Most common issue**: RLS (Row Level Security) is not configured
+- Solution: Run the SQL commands in `SUPABASE_RLS_SETUP.sql`
+- Check RLS policies in **Database** > **Tables** > Select table > **RLS Policies**
+- Ensure policies allow `SELECT` access to the `anon` role
+
+### "403 Forbidden" or "permission denied" errors
+
+- This means RLS is blocking access
+- Run the RLS setup SQL (see Step 5 above)
+- Verify policies exist in SQL Editor: `SELECT * FROM pg_policies WHERE schemaname = 'public';`
 
 ## Security Best Practices
 
