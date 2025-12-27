@@ -121,3 +121,4 @@ ORDER BY tablename, policyname;
 -- - For authenticated user data, use auth.uid() in policies
 -- =====================================================
 
+
