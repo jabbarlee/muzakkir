@@ -76,7 +76,7 @@ export default function SignUpPage() {
       }
 
       // Redirect to home page after successful signup
-      router.push("/");
+      router.push("/books");
     } catch (err) {
       setError("An unexpected error occurred. Please try again.");
       console.error("Signup error:", err);

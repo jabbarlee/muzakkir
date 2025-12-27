@@ -56,7 +56,7 @@ export default function SignInPage() {
       }
 
       // Redirect to home page after successful signin
-      router.push("/");
+      router.push("/books");
     } catch (err) {
       setError("An unexpected error occurred. Please try again.");
       console.error("Signin error:", err);
