@@ -95,7 +95,7 @@ export default function SignInPage() {
                 </div>
                 <div className="relative flex justify-center text-xs uppercase">
                   <span className="bg-card px-2 text-muted-foreground">
-                    Or continue with
+                    Or
                   </span>
                 </div>
               </div>
@@ -120,7 +120,7 @@ export default function SignInPage() {
                       fill="#EA4335"
                     />
                   </svg>
-                  Google
+                  Continue with Google
                 </Button>
               </div>
             </CardContent>

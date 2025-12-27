@@ -23,15 +23,12 @@ export default function Home() {
               </span>
             </div>
             <div className="flex items-center gap-3">
-              <Button asChild variant="ghost">
+              <Button asChild variant="outline">
                 <Link href="/signin">Sign In</Link>
               </Button>
-              <Button asChild variant="outline">
-                <Link href="/signup">Sign Up</Link>
-              </Button>
               <Button asChild>
-                <Link href="/read">Start Reading</Link>
-              </Button>
+                <Link href="/signup">Sign Up</Link>
+              </Button>  
             </div>
           </div>
         </div>

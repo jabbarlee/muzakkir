@@ -46,7 +46,7 @@ export default function SignUpPage() {
         <div className="absolute bottom-1/4 -right-32 w-96 h-96 bg-accent/30 rounded-full blur-3xl" />
       </div>
 
-      {/* Sign Up Form */}
+      {/* Sign Up Form */}  
       <div className="relative flex items-center justify-center min-h-screen px-4 py-24">
         <div className="w-full max-w-md">
           <Card className="shadow-xl">
@@ -105,7 +105,7 @@ export default function SignUpPage() {
                 </div>
                 <div className="relative flex justify-center text-xs uppercase">
                   <span className="bg-card px-2 text-muted-foreground">
-                    Or continue with
+                    Or
                   </span>
                 </div>
               </div>
@@ -130,7 +130,7 @@ export default function SignUpPage() {
                       fill="#EA4335"
                     />
                   </svg>
-                  Google
+                  Continue with Google
                 </Button>
               </div>
             </CardContent>
