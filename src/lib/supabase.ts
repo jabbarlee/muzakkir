@@ -1,7 +1,11 @@
-import { createClient } from "@supabase/supabase-js";
+/**
+ * Supabase Module Exports
+ * Re-exports all Supabase functionality from the modular structure
+ * This file maintains backward compatibility with existing imports
+ */
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// Re-export everything from the new modular structure
+export * from "./supabase/config";
+export * from "./supabase/auth-service";
+export * from "./supabase/auth-context";
 

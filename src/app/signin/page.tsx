@@ -1,5 +1,9 @@
+"use client";
+
+import { useState, FormEvent } from "react";
 import Link from "next/link";
-import { BookOpen, ArrowLeft } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { BookOpen, ArrowLeft, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,8 +15,74 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { signInWithEmail, signInWithGoogle } from "@/lib/supabase";
 
 export default function SignInPage() {
+  const router = useRouter();
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [formData, setFormData] = useState({
+    email: "",
+    password: "",
+  });
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { id, value } = e.target;
+    setFormData((prev) => ({ ...prev, [id]: value }));
+    // Clear error when user starts typing
+    if (error) setError(null);
+  };
+
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+
+    if (!formData.email.trim() || !formData.password) {
+      setError("Please enter both email and password");
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const result = await signInWithEmail({
+        email: formData.email,
+        password: formData.password,
+      });
+
+      if (result.error) {
+        setError(result.error.message);
+        return;
+      }
+
+      // Redirect to home page after successful signin
+      router.push("/");
+    } catch (err) {
+      setError("An unexpected error occurred. Please try again.");
+      console.error("Signin error:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const result = await signInWithGoogle();
+
+      if (result.error) {
+        setError(result.error.message);
+      }
+      // Note: For OAuth, the redirect happens automatically
+    } catch (err) {
+      setError("Failed to sign in with Google. Please try again.");
+      console.error("Google sign-in error:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
   return (
     <div className="min-h-screen bg-background">
       {/* Navigation */}
@@ -57,7 +127,14 @@ export default function SignInPage() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <form className="space-y-4">
+              {error && (
+                <div className="flex items-center gap-2 p-3 text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-lg">
+                  <AlertCircle className="size-4 flex-shrink-0" />
+                  <p>{error}</p>
+                </div>
+              )}
+
+              <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="email">Email</Label>
                   <Input
@@ -65,6 +142,10 @@ export default function SignInPage() {
                     type="email"
                     placeholder="name@example.com"
                     autoComplete="email"
+                    value={formData.email}
+                    onChange={handleInputChange}
+                    disabled={isLoading}
+                    required
                   />
                 </div>
                 <div className="space-y-2">
@@ -82,10 +163,19 @@ export default function SignInPage() {
                     type="password"
                     placeholder="Enter your password"
                     autoComplete="current-password"
+                    value={formData.password}
+                    onChange={handleInputChange}
+                    disabled={isLoading}
+                    required
                   />
                 </div>
-                <Button type="submit" className="w-full" size="lg">
-                  Sign In
+                <Button
+                  type="submit"
+                  className="w-full"
+                  size="lg"
+                  disabled={isLoading}
+                >
+                  {isLoading ? "Signing in..." : "Sign In"}
                 </Button>
               </form>
 
@@ -99,7 +189,13 @@ export default function SignInPage() {
               </div>
 
               <div className="grid grid-cols-1 gap-3">
-                <Button variant="outline" size="lg">
+                <Button
+                  variant="outline"
+                  size="lg"
+                  onClick={handleGoogleSignIn}
+                  disabled={isLoading}
+                  type="button"
+                >
                   <svg className="size-5" viewBox="0 0 24 24">
                     <path
                       d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"

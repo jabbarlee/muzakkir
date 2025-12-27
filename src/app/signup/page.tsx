@@ -1,5 +1,9 @@
+"use client";
+
+import { useState, FormEvent } from "react";
 import Link from "next/link";
-import { BookOpen, ArrowLeft } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { BookOpen, ArrowLeft, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,8 +15,94 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { signUpWithEmail, signInWithGoogle } from "@/lib/supabase";
 
 export default function SignUpPage() {
+  const router = useRouter();
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+  });
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { id, value } = e.target;
+    setFormData((prev) => ({ ...prev, [id]: value }));
+    // Clear error when user starts typing
+    if (error) setError(null);
+  };
+
+  const validateForm = (): boolean => {
+    if (!formData.name.trim()) {
+      setError("Please enter your full name");
+      return false;
+    }
+    if (!formData.email.trim()) {
+      setError("Please enter your email");
+      return false;
+    }
+    if (formData.password.length < 6) {
+      setError("Password must be at least 6 characters");
+      return false;
+    }
+    if (formData.password !== formData.confirmPassword) {
+      setError("Passwords do not match");
+      return false;
+    }
+    return true;
+  };
+
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+
+    if (!validateForm()) return;
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const result = await signUpWithEmail({
+        email: formData.email,
+        password: formData.password,
+        fullName: formData.name,
+      });
+
+      if (result.error) {
+        setError(result.error.message);
+        return;
+      }
+
+      // Redirect to home page after successful signup
+      router.push("/");
+    } catch (err) {
+      setError("An unexpected error occurred. Please try again.");
+      console.error("Signup error:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const result = await signInWithGoogle();
+
+      if (result.error) {
+        setError(result.error.message);
+      }
+      // Note: For OAuth, the redirect happens automatically
+    } catch (err) {
+      setError("Failed to sign in with Google. Please try again.");
+      console.error("Google sign-in error:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
   return (
     <div className="min-h-screen bg-background">
       {/* Navigation */}
@@ -57,7 +147,14 @@ export default function SignUpPage() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <form className="space-y-4">
+              {error && (
+                <div className="flex items-center gap-2 p-3 text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-lg">
+                  <AlertCircle className="size-4 flex-shrink-0" />
+                  <p>{error}</p>
+                </div>
+              )}
+
+              <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="name">Full Name</Label>
                   <Input
@@ -65,6 +162,10 @@ export default function SignUpPage() {
                     type="text"
                     placeholder="Enter your full name"
                     autoComplete="name"
+                    value={formData.name}
+                    onChange={handleInputChange}
+                    disabled={isLoading}
+                    required
                   />
                 </div>
                 <div className="space-y-2">
@@ -74,6 +175,10 @@ export default function SignUpPage() {
                     type="email"
                     placeholder="name@example.com"
                     autoComplete="email"
+                    value={formData.email}
+                    onChange={handleInputChange}
+                    disabled={isLoading}
+                    required
                   />
                 </div>
                 <div className="space-y-2">
@@ -83,19 +188,32 @@ export default function SignUpPage() {
                     type="password"
                     placeholder="Create a strong password"
                     autoComplete="new-password"
+                    value={formData.password}
+                    onChange={handleInputChange}
+                    disabled={isLoading}
+                    required
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="confirm-password">Confirm Password</Label>
+                  <Label htmlFor="confirmPassword">Confirm Password</Label>
                   <Input
-                    id="confirm-password"
+                    id="confirmPassword"
                     type="password"
                     placeholder="Re-enter your password"
                     autoComplete="new-password"
+                    value={formData.confirmPassword}
+                    onChange={handleInputChange}
+                    disabled={isLoading}
+                    required
                   />
                 </div>
-                <Button type="submit" className="w-full" size="lg">
-                  Create Account
+                <Button
+                  type="submit"
+                  className="w-full"
+                  size="lg"
+                  disabled={isLoading}
+                >
+                  {isLoading ? "Creating account..." : "Create Account"}
                 </Button>
               </form>
 
@@ -109,7 +227,13 @@ export default function SignUpPage() {
               </div>
 
               <div className="grid grid-cols-1 gap-3">
-                <Button variant="outline" size="lg">
+                <Button
+                  variant="outline"
+                  size="lg"
+                  onClick={handleGoogleSignIn}
+                  disabled={isLoading}
+                  type="button"
+                >
                   <svg className="size-5" viewBox="0 0 24 24">
                     <path
                       d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"

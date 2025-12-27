@@ -1,5 +1,8 @@
+"use client";
+
 import Link from "next/link";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import {
   BookOpen,
   ArrowRight,
@@ -7,10 +10,23 @@ import {
   MessageCircle,
   Search,
   Library,
+  LogOut,
+  User,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useAuth, signOutUser } from "@/lib/supabase";
 
 export default function Home() {
+  const { user, loading } = useAuth();
+  const router = useRouter();
   return (
     <div className="min-h-screen bg-background">
       {/* Navigation */}
@@ -23,12 +39,50 @@ export default function Home() {
               </span>
             </div>
             <div className="flex items-center gap-3">
-              <Button asChild variant="outline">
-                <Link href="/signin">Sign In</Link>
-              </Button>
-              <Button asChild>
-                <Link href="/signup">Sign Up</Link>
-              </Button>  
+              {loading ? (
+                <div className="h-9 w-32 animate-pulse bg-muted rounded-md" />
+              ) : user ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" className="gap-2">
+                      <User className="size-4" />
+                      {user.user_metadata?.full_name ||
+                        user.user_metadata?.display_name ||
+                        user.email?.split("@")[0]}
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56">
+                    <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem disabled>
+                      <User className="mr-2 size-4" />
+                      {user.email}
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      className="text-destructive focus:text-destructive"
+                      onClick={async () => {
+                        const result = await signOutUser();
+                        if (!result.error) {
+                          router.push("/");
+                        }
+                      }}
+                    >
+                      <LogOut className="mr-2 size-4" />
+                      Sign Out
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : (
+                <>
+                  <Button asChild variant="outline">
+                    <Link href="/signin">Sign In</Link>
+                  </Button>
+                  <Button asChild>
+                    <Link href="/signup">Sign Up</Link>
+                  </Button>
+                </>
+              )}
             </div>
           </div>
         </div>

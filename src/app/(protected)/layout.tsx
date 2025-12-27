@@ -1,56 +1,30 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/lib/supabase";
 
+/**
+ * Protected Layout
+ * Ensures only authenticated users can access routes within this group
+ */
 export default function ProtectedLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   const router = useRouter();
-  const [isLoading, setIsLoading] = useState(true);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const { user, loading } = useAuth();
 
   useEffect(() => {
-    // TODO: Replace with Firebase auth check
-    // Example Firebase integration:
-    // const unsubscribe = onAuthStateChanged(auth, (user) => {
-    //   if (user) {
-    //     setIsAuthenticated(true);
-    //   } else {
-    //     router.push("/signin");
-    //   }
-    //   setIsLoading(false);
-    // });
-    // return () => unsubscribe();
+    // Redirect to signin if user is not authenticated
+    if (!loading && !user) {
+      router.push("/signin");
+    }
+  }, [user, loading, router]);
 
-    // Temporary: Check for authentication (replace with Firebase)
-    const checkAuth = async () => {
-      try {
-        // Placeholder: Replace this with your Firebase auth check
-        // For now, we'll check if there's a session/token
-        const hasSession = false; // Replace with actual auth check
-
-        if (!hasSession) {
-          router.push("/signin");
-          return;
-        }
-
-        setIsAuthenticated(true);
-      } catch (error) {
-        console.error("Auth check failed:", error);
-        router.push("/signin");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    checkAuth();
-  }, [router]);
-
-  // Loading state
-  if (isLoading) {
+  // Show loading state while checking authentication
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">
@@ -62,7 +36,7 @@ export default function ProtectedLayout({
   }
 
   // If not authenticated, don't render anything (redirect is happening)
-  if (!isAuthenticated) {
+  if (!user) {
     return null;
   }
 

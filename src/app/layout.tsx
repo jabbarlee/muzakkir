@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Playfair_Display, Amiri } from "next/font/google";
 import { QueryProvider } from "@/lib/providers/query-provider";
+import { AuthProvider } from "@/lib/supabase";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -36,7 +37,9 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${playfairDisplay.variable} ${amiri.variable} antialiased`}
       >
-        <QueryProvider>{children}</QueryProvider>
+        <AuthProvider>
+          <QueryProvider>{children}</QueryProvider>
+        </AuthProvider>
       </body>
     </html>
   );
