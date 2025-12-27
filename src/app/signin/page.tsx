@@ -1,5 +1,4 @@
 import Link from "next/link";
-import Image from "next/image";
 import { BookOpen, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -49,24 +48,8 @@ export default function SignInPage() {
 
       {/* Sign In Form */}
       <div className="relative flex items-center justify-center min-h-screen px-4 py-24">
-        <div className="w-full max-w-6xl">
-          <div className="grid lg:grid-cols-2 gap-8 items-center">
-            {/* Left side - Image */}
-            <div className="hidden lg:block">
-              <div className="relative w-full h-[700px] rounded-2xl overflow-hidden shadow-2xl">
-                <Image
-                  src="/signup_page_image.png"
-                  alt="Muzakkir Signin"
-                  fill
-                  className="object-cover"
-                  priority
-                />
-              </div>
-            </div>
-
-            {/* Right side - Form */}
-            <div className="w-full max-w-md mx-auto lg:mx-0">
-              <Card className="shadow-xl">
+        <div className="w-full max-w-md">
+          <Card className="shadow-xl">
             <CardHeader className="space-y-2 text-center">
               <CardTitle className="text-3xl">Welcome Back</CardTitle>
               <CardDescription className="text-base">
@@ -154,11 +137,9 @@ export default function SignInPage() {
             </CardFooter>
           </Card>
 
-              <p className="text-center text-sm text-muted-foreground mt-6">
-                By continuing, you agree to our Terms of Service and Privacy Policy
-              </p>
-            </div>
-          </div>
+          <p className="text-center text-sm text-muted-foreground mt-6">
+            By continuing, you agree to our Terms of Service and Privacy Policy
+          </p>
         </div>
       </div>
     </div>
