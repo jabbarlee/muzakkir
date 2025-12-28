@@ -350,57 +350,113 @@ export function ReaderClient({
                   <ReactMarkdown
                     rehypePlugins={[rehypeRaw]}
                     components={{
-                      // Paragraphs
+                      // Paragraphs - Enhanced readability
                       p: ({ children }) => (
-                        <p className="mb-6 text-[1.15rem] leading-[1.95] text-paper-foreground/90">
+                        <p className="mb-7 text-[1.125rem] leading-[2] text-paper-foreground/90 font-normal tracking-wide">
                           {children}
                         </p>
                       ),
-                      // Headings
+                      // Headings - Improved hierarchy and spacing
                       h1: ({ children }) => (
-                        <h1 className="font-serif text-2xl font-semibold mt-10 mb-5 text-paper-foreground">
+                        <h1 className="font-serif text-3xl sm:text-4xl font-bold mt-16 mb-6 text-paper-foreground leading-tight tracking-tight first:mt-0">
                           {children}
                         </h1>
                       ),
                       h2: ({ children }) => (
-                        <h2 className="font-serif text-xl font-semibold mt-8 mb-4 text-paper-foreground">
+                        <h2 className="font-serif text-2xl sm:text-3xl font-bold mt-14 mb-5 text-paper-foreground leading-tight tracking-tight first:mt-0">
                           {children}
                         </h2>
                       ),
                       h3: ({ children }) => (
-                        <h3 className="font-serif text-lg font-semibold mt-6 mb-3 text-paper-foreground">
+                        <h3 className="font-serif text-xl sm:text-2xl font-semibold mt-12 mb-4 text-paper-foreground leading-snug tracking-tight">
                           {children}
                         </h3>
                       ),
-                      // Blockquotes
-                      blockquote: ({ children }) => (
-                        <blockquote className="border-l-3 border-primary/50 pl-5 my-6 italic text-paper-foreground/85">
+                      h4: ({ children }) => (
+                        <h4 className="font-serif text-lg sm:text-xl font-semibold mt-10 mb-3 text-paper-foreground leading-snug">
                           {children}
+                        </h4>
+                      ),
+                      h5: ({ children }) => (
+                        <h5 className="font-serif text-base sm:text-lg font-semibold mt-8 mb-3 text-paper-foreground leading-normal">
+                          {children}
+                        </h5>
+                      ),
+                      h6: ({ children }) => (
+                        <h6 className="font-serif text-base font-semibold mt-6 mb-2 text-paper-foreground/90 leading-normal uppercase tracking-wider text-sm">
+                          {children}
+                        </h6>
+                      ),
+                      // Blockquotes - Enhanced visual design
+                      blockquote: ({ children }) => (
+                        <blockquote className="relative border-l-4 border-primary/40 pl-6 pr-4 py-4 my-8 italic text-paper-foreground/80 bg-primary/5 rounded-r-lg">
+                          <div className="text-[1.0625rem] leading-[1.85]">
+                            {children}
+                          </div>
                         </blockquote>
                       ),
-                      // Strong/Bold
+                      // Strong/Bold - More prominent
                       strong: ({ children }) => (
-                        <strong className="font-semibold text-paper-foreground">
+                        <strong className="font-bold text-paper-foreground">
                           {children}
                         </strong>
                       ),
-                      // Emphasis
+                      // Emphasis - Refined italic
                       em: ({ children }) => (
-                        <em className="italic">{children}</em>
+                        <em className="italic text-paper-foreground/85">
+                          {children}
+                        </em>
                       ),
-                      // Lists
+                      // Horizontal rule - Section divider
+                      hr: () => (
+                        <hr className="my-12 border-0 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
+                      ),
+                      // Lists - Better spacing and markers
                       ul: ({ children }) => (
-                        <ul className="my-5 pl-6 space-y-2 list-disc">
+                        <ul className="my-6 pl-8 space-y-3 list-none">
                           {children}
                         </ul>
                       ),
                       ol: ({ children }) => (
-                        <ol className="my-5 pl-6 space-y-2 list-decimal">
+                        <ol className="my-6 pl-8 space-y-3 list-decimal marker:text-primary marker:font-semibold">
                           {children}
                         </ol>
                       ),
                       li: ({ children }) => (
-                        <li className="leading-relaxed">{children}</li>
+                        <li className="text-[1.0625rem] leading-[1.9] text-paper-foreground/90 pl-2 relative before:content-['•'] before:absolute before:left-[-1.25rem] before:text-primary before:font-bold before:text-lg">
+                          {children}
+                        </li>
+                      ),
+                      // Links - Styled for readability
+                      a: ({ children, href }) => (
+                        <a
+                          href={href}
+                          className="text-primary font-medium underline decoration-primary/30 underline-offset-2 hover:decoration-primary transition-colors"
+                          target={
+                            href?.startsWith("http") ? "_blank" : undefined
+                          }
+                          rel={
+                            href?.startsWith("http")
+                              ? "noopener noreferrer"
+                              : undefined
+                          }
+                        >
+                          {children}
+                        </a>
+                      ),
+                      // Code - Inline code styling
+                      code: ({ children }) => (
+                        <code className="px-2 py-0.5 rounded bg-accent/50 text-accent-foreground font-mono text-[0.9em] border border-border/50">
+                          {children}
+                        </code>
+                      ),
+                      // Pre - Code blocks
+                      pre: ({ children }) => (
+                        <pre className="my-6 p-4 rounded-lg bg-accent/30 border border-border/50 overflow-x-auto">
+                          <code className="text-sm font-mono text-accent-foreground leading-relaxed">
+                            {children}
+                          </code>
+                        </pre>
                       ),
                       // Handle div (for arabic-verse class)
                       div: ({ className, children, ...props }) => {
