@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, useCallback } from "react";
 import Link from "next/link";
-import { Menu, Loader2 } from "lucide-react";
+import { Menu, Loader2, ArrowLeft } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import rehypeRaw from "rehype-raw";
 import { Button } from "@/components/ui/button";
@@ -130,27 +130,30 @@ export function ReaderClient({
   /**
    * Handle double-click on a word for dictionary lookup
    */
-  const handleDoubleClick = useCallback((e: MouseEvent) => {
-    const selection = window.getSelection();
-    const text = selection?.toString().trim();
+  const handleDoubleClick = useCallback(
+    (e: MouseEvent) => {
+      const selection = window.getSelection();
+      const text = selection?.toString().trim();
 
-    if (text && text.length >= 2 && countWords(text) <= 2) {
-      // Close any existing popups
-      setSelectionPopup(null);
+      if (text && text.length >= 2 && countWords(text) <= 2) {
+        // Close any existing popups
+        setSelectionPopup(null);
 
-      const range = selection?.getRangeAt(0);
-      const rect = range?.getBoundingClientRect();
+        const range = selection?.getRangeAt(0);
+        const rect = range?.getBoundingClientRect();
 
-      if (rect) {
-        const firstWord = text.split(/\s+/)[0];
-        setDictionaryPopup({
-          word: firstWord,
-          x: rect.left + rect.width / 2,
-          y: rect.bottom,
-        });
+        if (rect) {
+          const firstWord = text.split(/\s+/)[0];
+          setDictionaryPopup({
+            word: firstWord,
+            x: rect.left + rect.width / 2,
+            y: rect.bottom,
+          });
+        }
       }
-    }
-  }, [countWords]);
+    },
+    [countWords]
+  );
 
   // Handle asking about selected text
   const handleAskAboutSelection = useCallback(() => {
@@ -284,8 +287,34 @@ export function ReaderClient({
               {chapter.title}
             </span>
 
-            {/* Right: AI Chat Toggle Buttons */}
+            {/* Right: Back to Books + AI Chat Toggle Buttons */}
             <div className="flex items-center gap-2 flex-shrink-0">
+              {/* Back to Books Button - Mobile (icon only) */}
+              <Button
+                variant="ghost"
+                size="icon"
+                asChild
+                className="lg:hidden text-muted-foreground hover:text-foreground"
+                title="Back to Books"
+              >
+                <Link href="/books">
+                  <ArrowLeft className="size-5" />
+                </Link>
+              </Button>
+
+              {/* Back to Books Button - Desktop (with text) */}
+              <Button
+                variant="ghost"
+                size="sm"
+                asChild
+                className="hidden lg:flex items-center gap-2 text-muted-foreground hover:text-foreground"
+              >
+                <Link href="/books">
+                  <ArrowLeft className="size-4" />
+                  <span>All Books</span>
+                </Link>
+              </Button>
+
               {/* AI Chat Toggle Button - Desktop */}
               <AIChatToggleButton
                 isOpen={isChatOpen}
@@ -472,4 +501,3 @@ export function ReaderClient({
     </div>
   );
 }
-
