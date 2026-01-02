@@ -242,11 +242,9 @@ const formatAuthError = (error: AuthError): AuthError => {
   const customMessage = errorMessages[error.message];
 
   if (customMessage) {
-    return {
-      ...error,
-      message: customMessage,
-      __isAuthError: true,
-    } as AuthError;
+    // Modify the error object directly to preserve all properties including __isAuthError
+    (error as any).message = customMessage;
+    return error;
   }
 
   return error;
