@@ -59,6 +59,11 @@ export const signUpWithEmail = async ({
       };
     }
 
+    // Store tokens in cookies for server-side access
+    if (data.session) {
+      storeAuthTokensInCookies(data.session);
+    }
+
     return {
       user: data.user,
       session: data.session,
@@ -94,6 +99,11 @@ export const signInWithEmail = async ({
         session: null,
         error: formatAuthError(error),
       };
+    }
+
+    // Store tokens in cookies for server-side access
+    if (data.session) {
+      storeAuthTokensInCookies(data.session);
     }
 
     return {
@@ -146,6 +156,9 @@ export const signOutUser = async (): Promise<{ error: AuthError | null }> => {
     if (error) {
       return { error: formatAuthError(error) };
     }
+
+    // Clear auth cookies
+    storeAuthTokensInCookies(null);
 
     return { error: null };
   } catch (error) {
@@ -232,10 +245,28 @@ const formatAuthError = (error: AuthError): AuthError => {
     return {
       ...error,
       message: customMessage,
-    };
+      __isAuthError: true,
+    } as AuthError;
   }
 
   return error;
+};
+
+/**
+ * Store auth tokens in cookies for server-side access
+ */
+export const storeAuthTokensInCookies = (session: Session | null) => {
+  if (typeof window === "undefined") return;
+
+  if (session) {
+    // Store tokens in cookies
+    document.cookie = `sb-access-token=${session.access_token}; path=/; max-age=3600; SameSite=Lax`;
+    document.cookie = `sb-refresh-token=${session.refresh_token}; path=/; max-age=2592000; SameSite=Lax`;
+  } else {
+    // Clear cookies on sign out
+    document.cookie = "sb-access-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+    document.cookie = "sb-refresh-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+  }
 };
 
 /**
@@ -249,6 +280,8 @@ export const onAuthStateChange = (
   const {
     data: { subscription },
   } = supabase.auth.onAuthStateChange((_event, session) => {
+    // Store tokens in cookies for server-side access
+    storeAuthTokensInCookies(session);
     callback(session?.user ?? null, session);
   });
 
