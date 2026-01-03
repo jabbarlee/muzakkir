@@ -149,19 +149,41 @@ export async function POST(request: NextRequest) {
       console.log("Found current chapter:", primaryChapter?.title);
     }
 
-    // Step 3: Generate embedding for semantic search
-    // Use the cleaned search query from analysis, or the original question
-    const searchQuery = referenceText
-      ? `${queryAnalysis.searchQuery} ${referenceText.substring(0, 200)}`
-      : queryAnalysis.searchQuery;
+    // Step 3: Generate embedding for semantic search using vector similarity
+    // Use the cleaned search query from analysis, or fallback to original question
+    let searchQuery = queryAnalysis.searchQuery || question;
+    
+    // Enhance search query with reference text if provided
+    if (referenceText) {
+      searchQuery = `${searchQuery} ${referenceText.substring(0, 200)}`;
+    }
+    
+    // Ensure we have a valid query for embedding
+    if (!searchQuery || !searchQuery.trim()) {
+      searchQuery = question; // Fallback to original question
+    }
 
-    const queryEmbedding = await generateEmbedding(searchQuery);
+    // Generate vector embedding for semantic search
+    // This converts the natural language query into a high-dimensional vector
+    // that captures semantic meaning, enabling concept-based search
+    console.log("Generating embedding for query:", searchQuery.substring(0, 100));
+    const queryEmbedding = await generateEmbedding(searchQuery.trim());
+    
+    // Validate embedding was generated successfully
+    if (!queryEmbedding || queryEmbedding.length === 0) {
+      throw new Error("Failed to generate embedding vector");
+    }
+    
+    console.log(`Generated embedding vector with ${queryEmbedding.length} dimensions`);
 
-    // Step 4: Search for related documents
+    // Step 4: Search for related documents using cosine similarity
+    // This finds passages semantically similar to the user's query
     const matchedDocuments = await searchSimilarDocuments(queryEmbedding, {
-      matchThreshold: 0.25,
+      matchThreshold: 0.25, // Minimum similarity score (0-1)
       matchCount: primaryChapter ? 3 : 5, // Fewer if we have primary content
     });
+    
+    console.log(`Found ${matchedDocuments.length} semantically similar documents`);
 
     // Step 5: Build enhanced context with proper prioritization
     const context = buildEnhancedContext(primaryChapter, matchedDocuments);
