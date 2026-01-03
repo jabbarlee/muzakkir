@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, FormEvent, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useState, FormEvent, useCallback, useEffect, useRef } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Search, ArrowLeft, BookOpen, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -21,17 +21,26 @@ import { User, LogOut } from "lucide-react";
 
 export default function SearchPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user } = useAuth();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<DocumentMatch[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hasSearched, setHasSearched] = useState(false);
+  const lastProcessedQuery = useRef<string | null>(null);
 
-  const handleSearch = useCallback(
-    async (searchQuery: string) => {
+  const performSearch = useCallback(
+    async (searchQuery: string, updateUrl: boolean = true) => {
       if (!searchQuery.trim()) {
         return;
+      }
+
+      // Update URL with search query
+      if (updateUrl) {
+        const params = new URLSearchParams();
+        params.set("q", searchQuery.trim());
+        router.replace(`/search?${params.toString()}`, { scroll: false });
       }
 
       setIsLoading(true);
@@ -70,12 +79,43 @@ export default function SearchPage() {
         setIsLoading(false);
       }
     },
-    []
+    [router]
+  );
+
+  // Initialize query from URL on mount and handle URL changes
+  useEffect(() => {
+    const urlQuery = searchParams.get("q");
+    
+    // Only process if the query has changed
+    if (urlQuery !== lastProcessedQuery.current) {
+      lastProcessedQuery.current = urlQuery;
+      
+      if (urlQuery) {
+        // URL has a query parameter
+        setQuery(urlQuery);
+        performSearch(urlQuery, false); // Don't update URL, it's already set
+      } else {
+        // No query in URL - reset state
+        setQuery("");
+        setResults([]);
+        setHasSearched(false);
+        setError(null);
+      }
+    }
+  }, [searchParams, performSearch]);
+
+  const handleSearch = useCallback(
+    (searchQuery: string) => {
+      const trimmedQuery = searchQuery.trim();
+      lastProcessedQuery.current = trimmedQuery; // Update ref to prevent duplicate search
+      performSearch(trimmedQuery, true); // Update URL on manual search
+    },
+    [performSearch]
   );
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
-    handleSearch(query);
+    handleSearch(query); // Update URL on form submit
   };
 
   const handleAskAI = useCallback(
