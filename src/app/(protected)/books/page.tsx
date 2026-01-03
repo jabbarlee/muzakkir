@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { BookOpen, LogOut, User } from "lucide-react";
+import { BookOpen, LogOut, User, Search } from "lucide-react";
 import { getBooks, getFirstChapter } from "@/actions/documents";
 import { Book } from "@/lib/types/chat";
 import { useAuth, signOutUser } from "@/lib/supabase";
@@ -178,6 +178,16 @@ export default function BooksPage() {
                 Muzakkir
               </span>
             </Link>
+
+            {/* Search Link */}
+            <div className="flex items-center gap-2">
+              <Button variant="ghost" size="sm" asChild>
+                <Link href="/search" className="gap-2">
+                  <Search className="size-4" />
+                  <span className="hidden sm:inline">Search</span>
+                </Link>
+              </Button>
+            </div>
 
             {/* User Dropdown */}
             {user && (

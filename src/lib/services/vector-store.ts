@@ -19,36 +19,69 @@ function getOpenAIClient(): OpenAI {
 
 /**
  * Generate an embedding vector for the given text using OpenAI's text-embedding-3-small model
+ * Converts natural language text into a high-dimensional vector representation
+ * that captures semantic meaning for similarity-based search.
+ * 
  * @param text - The text to generate an embedding for
- * @returns The embedding vector as an array of numbers
+ * @returns The embedding vector as an array of numbers (typically 1536 dimensions)
+ * @throws Error if embedding generation fails
  */
 export async function generateEmbedding(text: string): Promise<number[]> {
+  if (!text || typeof text !== "string" || !text.trim()) {
+    throw new Error("Text input is required for embedding generation");
+  }
+
   try {
     const openai = getOpenAIClient();
+    const trimmedText = text.trim();
+    
     const response = await openai.embeddings.create({
       model: "text-embedding-3-small",
-      input: text.trim(),
+      input: trimmedText,
     });
 
-    return response.data[0].embedding;
+    const embedding = response.data[0]?.embedding;
+    
+    if (!embedding || !Array.isArray(embedding) || embedding.length === 0) {
+      throw new Error("Invalid embedding response from OpenAI");
+    }
+
+    return embedding;
   } catch (error) {
     console.error("Error generating embedding:", error);
+    if (error instanceof Error) {
+      throw new Error(`Failed to generate embedding: ${error.message}`);
+    }
     throw new Error("Failed to generate embedding for the query");
   }
 }
 
 /**
- * Search for similar paragraphs in Supabase using vector similarity
- * Uses the new match_paragraphs RPC function
- * @param embedding - The query embedding vector
+ * Search for similar paragraphs in Supabase using vector similarity (cosine similarity)
+ * Uses the match_paragraphs RPC function which performs efficient vector similarity search
+ * 
+ * @param embedding - The query embedding vector (must be valid array of numbers)
  * @param options - Search options (threshold and count)
- * @returns Array of matching paragraphs with similarity scores
+ * @returns Array of matching paragraphs with similarity scores, sorted by relevance
  */
 export async function searchSimilarDocuments(
   embedding: number[],
   options: SearchOptions = {}
 ): Promise<DocumentMatch[]> {
+  // Validate embedding input
+  if (!embedding || !Array.isArray(embedding) || embedding.length === 0) {
+    throw new Error("Invalid embedding vector provided");
+  }
+
   const { matchThreshold = 0.3, matchCount = 5 } = options;
+
+  // Validate options
+  if (matchThreshold < 0 || matchThreshold > 1) {
+    throw new Error("matchThreshold must be between 0 and 1");
+  }
+  if (matchCount < 1 || matchCount > 100) {
+    throw new Error("matchCount must be between 1 and 100");
+  }
 
   try {
     const { data, error } = await supabase.rpc("match_paragraphs", {
@@ -59,12 +92,27 @@ export async function searchSimilarDocuments(
 
     if (error) {
       console.error("Supabase RPC error:", error);
-      throw new Error("Failed to search for similar documents");
+      throw new Error(`Failed to search for similar documents: ${error.message}`);
     }
 
-    return (data as DocumentMatch[]) || [];
+    // Ensure we return an array even if data is null/undefined
+    const results = (data as DocumentMatch[]) || [];
+    
+    // Validate results structure
+    return results.filter((doc) => {
+      return (
+        doc &&
+        typeof doc === "object" &&
+        "content" in doc &&
+        "similarity" in doc &&
+        typeof doc.similarity === "number"
+      );
+    });
   } catch (error) {
     console.error("Error searching documents:", error);
+    if (error instanceof Error) {
+      throw error; // Re-throw with original message
+    }
     throw new Error("Failed to search for similar documents");
   }
 }
