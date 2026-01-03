@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { BookOpen, Loader2 } from "lucide-react";
+import { BookOpen, Loader2, Search } from "lucide-react";
 import { Chapter } from "@/lib/types/chat";
 
 interface ChapterListProps {
@@ -23,13 +23,21 @@ export function ChapterList({
 }: ChapterListProps) {
   return (
     <div className="flex flex-col h-full">
-      <div className="px-4 border-b border-sidebar-border flex-shrink-0 h-14 flex items-center">
+      <div className="px-4 border-b border-sidebar-border flex-shrink-0 h-14 flex items-center justify-between">
         <Link
-          href="/read"
+          href="/books"
           className="flex items-center gap-2 text-sidebar-primary hover:text-sidebar-primary/80 transition-colors"
         >
           <BookOpen className="size-5" />
           <span className="font-semibold tracking-tight">Muzakkir</span>
+        </Link>
+        <Link
+          href="/search"
+          className="p-1.5 rounded-md text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/50 transition-colors"
+          title="Search"
+          onClick={() => onClose?.()}
+        >
+          <Search className="size-4" />
         </Link>
       </div>
       <div className="flex-1 overflow-y-auto">

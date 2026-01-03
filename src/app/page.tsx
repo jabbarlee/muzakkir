@@ -123,13 +123,13 @@ export default function Home() {
               {/* CTA Buttons */}
               <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
                 <Button asChild size="lg" className="gap-2 shadow-lg">
-                  <Link href="/read">
+                  <Link href="/books">
                     Start Reading
                     <ArrowRight className="size-4" />
                   </Link>
                 </Button>
                 <Button asChild size="lg" variant="outline" className="gap-2">
-                  <Link href="/read">
+                  <Link href="/books/sozler">
                     <MessageCircle className="size-4" />
                     Ask AI
                   </Link>

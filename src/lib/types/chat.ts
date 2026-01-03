@@ -76,6 +76,7 @@ export interface DocumentMatch {
   book_title: string;
   chapter_title: string;
   chapter_id: number;
+  book_slug?: string | null; // Added for navigation links
 }
 
 /**
@@ -116,5 +117,26 @@ export interface ChapterWithContent {
   chapterNumber: number;
   bookTitle: string;
   content: string;
+}
+
+// ============================================
+// Search Types
+// ============================================
+
+/**
+ * Request body for the search API
+ */
+export interface SearchRequest {
+  query: string;
+  limit?: number;
+  threshold?: number;
+}
+
+/**
+ * Response from the search API
+ */
+export interface SearchResponse {
+  results: DocumentMatch[];
+  query: string;
 }
 

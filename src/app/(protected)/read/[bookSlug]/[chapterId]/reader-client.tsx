@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, useCallback } from "react";
 import Link from "next/link";
-import { Menu, Loader2, ArrowLeft } from "lucide-react";
+import { Menu, Loader2, ArrowLeft, Search } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import rehypeRaw from "rehype-raw";
 import { Button } from "@/components/ui/button";
@@ -312,6 +312,19 @@ export function ReaderClient({
                 <Link href="/books">
                   <ArrowLeft className="size-4" />
                   <span>All Books</span>
+                </Link>
+              </Button>
+
+              {/* Search Button */}
+              <Button
+                variant="ghost"
+                size="sm"
+                asChild
+                className="hidden lg:flex items-center gap-2 text-muted-foreground hover:text-foreground"
+              >
+                <Link href="/search">
+                  <Search className="size-4" />
+                  <span>Search</span>
                 </Link>
               </Button>
 
