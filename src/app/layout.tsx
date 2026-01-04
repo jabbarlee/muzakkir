@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Playfair_Display, Amiri } from "next/font/google";
 import { QueryProvider } from "@/lib/providers/query-provider";
 import { AuthProvider } from "@/lib/supabase";
+import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 
 const geistSans = Geist({
