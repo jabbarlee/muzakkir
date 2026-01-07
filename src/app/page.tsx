@@ -135,7 +135,6 @@ export default function Home() {
                   </Link>
                 </Button>
               </div>
-
               {/* Stats */}
               <div className="flex gap-8 mt-12 justify-center lg:justify-start">
                 <div>
@@ -154,7 +153,6 @@ export default function Home() {
                 </div>
               </div>
             </div>
-
             {/* Right side - Screenshot */}
             <div className="relative lg:scale-150 lg:translate-x-8">
               {/* Decorative frame */}
