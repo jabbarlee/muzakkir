@@ -23,6 +23,7 @@ import { SelectionPopup } from "@/components/selection-popup";
 import { DictionaryPopover } from "@/components/dictionary-popover";
 import { processContent } from "@/lib/content-processor";
 import { Book, Chapter } from "@/lib/types/chat";
+import { extractContextWindow } from "@/lib/utils/context-extractor";
 
 interface ReaderClientProps {
   book: Book;
@@ -58,6 +59,7 @@ export function ReaderClient({
   // Dictionary popup state (for word lookups)
   const [dictionaryPopup, setDictionaryPopup] = useState<{
     word: string;
+    context?: string;
     x: number;
     y: number;
   } | null>(null);
@@ -100,11 +102,12 @@ export function ReaderClient({
 
     // Word selection (1-2 words): Show dictionary popup
     if (wordCount <= 2 && text.length >= 2 && text.length <= 50) {
-      // Extract the first word for dictionary lookup
-      const firstWord = text.split(/\s+/)[0];
-      if (firstWord && firstWord.length >= 2) {
+      // Extract context window for phrase detection
+      const { word, context } = extractContextWindow(selection, 2);
+      if (word && word.length >= 2) {
         setDictionaryPopup({
-          word: firstWord,
+          word,
+          context,
           x: rect.left + rect.width / 2,
           y: rect.bottom,
         });
@@ -142,13 +145,17 @@ export function ReaderClient({
         const range = selection?.getRangeAt(0);
         const rect = range?.getBoundingClientRect();
 
-        if (rect) {
-          const firstWord = text.split(/\s+/)[0];
-          setDictionaryPopup({
-            word: firstWord,
-            x: rect.left + rect.width / 2,
-            y: rect.bottom,
-          });
+        if (rect && selection) {
+          // Extract context window for phrase detection
+          const { word, context } = extractContextWindow(selection, 2);
+          if (word && word.length >= 2) {
+            setDictionaryPopup({
+              word,
+              context,
+              x: rect.left + rect.width / 2,
+              y: rect.bottom,
+            });
+          }
         }
       }
     },
@@ -224,6 +231,7 @@ export function ReaderClient({
       {dictionaryPopup && (
         <DictionaryPopover
           word={dictionaryPopup.word}
+          context={dictionaryPopup.context}
           position={{ x: dictionaryPopup.x, y: dictionaryPopup.y }}
           onClose={() => setDictionaryPopup(null)}
         />

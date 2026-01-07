@@ -16,6 +16,6 @@ export interface DictionaryResult {
   /** The dictionary entry if found */
   entry?: DictionaryEntry;
   /** The method used to find the definition */
-  method?: "exact" | "suffix_stripped";
+  method?: "exact" | "suffix_stripped" | "phrase_match" | "root_word";
 }
 

@@ -2,27 +2,30 @@
 
 import { useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { X, BookOpen, Search } from "lucide-react";
+import { X, BookOpen, Search, Link as LinkIcon, Layers } from "lucide-react";
 import { lookupWord } from "@/lib/services/dictionary-service";
 import { cn } from "@/lib/utils";
 
 interface DictionaryPopoverProps {
   word: string;
+  context?: string;
   position: { x: number; y: number };
   onClose: () => void;
 }
 
 export function DictionaryPopover({
   word,
+  context,
   position,
   onClose,
 }: DictionaryPopoverProps) {
   const popoverRef = useRef<HTMLDivElement>(null);
 
   // Use React Query for caching dictionary lookups
+  // Include context in query key for proper caching
   const { data, isLoading, isError } = useQuery({
-    queryKey: ["dictionary", word.toLowerCase()],
-    queryFn: () => lookupWord(word),
+    queryKey: ["dictionary", word.toLowerCase(), context?.toLowerCase()],
+    queryFn: () => lookupWord(word, context),
     enabled: !!word && word.length >= 2,
     staleTime: 30 * 60 * 1000, // 30 minutes
   });
@@ -72,11 +75,23 @@ export function DictionaryPopover({
           label: "Exact match",
           className: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
         };
+      case "phrase_match":
+        return {
+          icon: LinkIcon,
+          label: "Phrase match",
+          className: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400",
+        };
       case "suffix_stripped":
         return {
           icon: Search,
           label: "Root form",
           className: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
+        };
+      case "root_word":
+        return {
+          icon: Layers,
+          label: "Root word",
+          className: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400",
         };
       default:
         return null;
