@@ -103,16 +103,18 @@ export function ReaderClient({
     // Word selection (1-2 words): Show dictionary popup
     if (wordCount <= 2 && text.length >= 2 && text.length <= 50) {
       // Extract context window for phrase detection
-      const { word, context } = extractContextWindow(selection, 2);
-      if (word && word.length >= 2) {
-        setDictionaryPopup({
-          word,
-          context,
-          x: rect.left + rect.width / 2,
-          y: rect.bottom,
-        });
-        setSelectionPopup(null);
-        return;
+      if (selection) {
+        const { word, context } = extractContextWindow(selection, 2);
+        if (word && word.length >= 2) {
+          setDictionaryPopup({
+            word,
+            context,
+            x: rect.left + rect.width / 2,
+            y: rect.bottom,
+          });
+          setSelectionPopup(null);
+          return;
+        }
       }
     }
 
