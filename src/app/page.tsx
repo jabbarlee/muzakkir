@@ -41,37 +41,45 @@ export default function Home() {
               {loading ? (
                 <div className="h-9 w-32 animate-pulse bg-muted rounded-md" />
               ) : user ? (
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline" className="gap-2">
-                      <User className="size-4" />
-                      {user.user_metadata?.full_name ||
-                        user.user_metadata?.display_name ||
-                        user.email?.split("@")[0]}
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-56">
-                    <DropdownMenuLabel>My Account</DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem disabled>
-                      <User className="mr-2 size-4" />
-                      {user.email}
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                      className="text-destructive focus:text-destructive"
-                      onClick={async () => {
-                        const result = await signOutUser();
-                        if (!result.error) {
-                          router.push("/");
-                        }
-                      }}
-                    >
-                      <LogOut className="mr-2 size-4" />
-                      Sign Out
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                <>
+                  <Button asChild variant="outline" className="gap-2">
+                    <Link href="/books">
+                      <Library className="size-4" />
+                      Books
+                    </Link>
+                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" className="gap-2">
+                        <User className="size-4" />
+                        {user.user_metadata?.full_name ||
+                          user.user_metadata?.display_name ||
+                          user.email?.split("@")[0]}
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-56">
+                      <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem disabled>
+                        <User className="mr-2 size-4" />
+                        {user.email}
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        className="text-destructive focus:text-destructive"
+                        onClick={async () => {
+                          const result = await signOutUser();
+                          if (!result.error) {
+                            router.push("/");
+                          }
+                        }}
+                      >
+                        <LogOut className="mr-2 size-4" />
+                        Sign Out
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </>
               ) : (
                 <>
                   <Button asChild variant="outline">
