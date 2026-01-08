@@ -38,6 +38,7 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${playfairDisplay.variable} ${amiri.variable} antialiased`}
       >
+        <Analytics/>
         <AuthProvider>
           <QueryProvider>{children}</QueryProvider>
         </AuthProvider>
