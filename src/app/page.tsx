@@ -1,12 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
   BookOpen,
   ArrowRight,
-  Sparkles,
   MessageCircle,
   Search,
   Library,
@@ -23,6 +21,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useAuth, signOutUser } from "@/lib/supabase";
+import { MacbookScroll } from "@/components/ui/macbook-scroll";
 
 export default function Home() {
   const { user, loading } = useAuth();
@@ -88,91 +87,77 @@ export default function Home() {
         </div>
       </nav>
 
-      {/* Hero Section */}
-      <section className="relative pt-32 pb-20 lg:pt-40 lg:pb-32 overflow-hidden">
-        {/* Background decorations */}
-        <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute top-1/4 -left-32 w-96 h-96 bg-primary/10 rounded-full blur-3xl" />
-          <div className="absolute bottom-1/4 -right-32 w-96 h-96 bg-accent/30 rounded-full blur-3xl" />
-        </div>
-
+      {/* Hero Section with Macbook Scroll */}
+      <section className="relative overflow-hidden">
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid lg:grid-cols-2 gap-16 lg:gap-32 items-center">
-            {/* Left side - Hero Text */}
-            <div className="text-center lg:text-left">
-              {/* Badge */}
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 mb-8">
+          <MacbookScroll
+            src="/hero_image_muzakkir.png"
+            showGradient={true}
+            title={
+              <div className="space-y-6">
+                {/* Badge */}
+                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20">
+                  <span className="text-sm text-primary font-medium">
+                    AI-Powered Reading
+                  </span>
+                </div>
+
+                {/* Main heading */}
+                <h1 className="font-serif text-4xl sm:text-5xl lg:text-6xl font-bold text-foreground leading-tight">
+                  Discover the <span className="text-primary">Wisdom</span> of
+                  Risale-i Nur
+                </h1>
+
+                {/* Subtitle */}
+                <p className="text-lg sm:text-xl text-muted-foreground leading-relaxed max-w-2xl mx-auto">
+                  Experience the profound teachings of Bediüzzaman Said Nursi
+                  with an intelligent AI companion that helps you understand,
+                  explore, and connect with the text.
+                </p>
+
+                {/* CTA Buttons */}
+                <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
+                  <Button asChild size="lg" className="gap-2 shadow-lg">
+                    <Link href="/books">
+                      Start Reading
+                      <ArrowRight className="size-4" />
+                    </Link>
+                  </Button>
+                  <Button asChild size="lg" variant="outline" className="gap-2">
+                    <Link href="/books/sozler">
+                      <MessageCircle className="size-4" />
+                      Ask AI
+                    </Link>
+                  </Button>
+                </div>
+
+                {/* Stats */}
+                <div className="flex gap-8 justify-center pt-8">
+                  <div>
+                    <p className="text-2xl font-bold text-foreground">33+</p>
+                    <p className="text-sm text-muted-foreground">Treatises</p>
+                  </div>
+                  <div className="w-px bg-border" />
+                  <div>
+                    <p className="text-2xl font-bold text-foreground">AI</p>
+                    <p className="text-sm text-muted-foreground">Powered</p>
+                  </div>
+                  <div className="w-px bg-border" />
+                  <div>
+                    <p className="text-2xl font-bold text-foreground">24/7</p>
+                    <p className="text-sm text-muted-foreground">Available</p>
+                  </div>
+                </div>
+              </div>
+            }
+            badge={
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 backdrop-blur-sm">
                 <span className="text-sm text-primary font-medium">
                   AI-Powered Reading
                 </span>
               </div>
-
-              {/* Main heading */}
-              <h1 className="font-serif text-4xl sm:text-5xl lg:text-6xl font-bold text-foreground leading-tight mb-6">
-                Discover the <span className="text-primary">Wisdom</span> of
-                Risale-i Nur
-              </h1>
-
-              {/* Subtitle */}
-              <p className="text-lg sm:text-xl text-muted-foreground leading-relaxed mb-8 max-w-xl mx-auto lg:mx-0">
-                Experience the profound teachings of Bediüzzaman Said Nursi with
-                an intelligent AI companion that helps you understand, explore,
-                and connect with the text.
-              </p>
-
-              {/* CTA Buttons */}
-              <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
-                <Button asChild size="lg" className="gap-2 shadow-lg">
-                  <Link href="/books">
-                    Start Reading
-                    <ArrowRight className="size-4" />
-                  </Link>
-                </Button>
-                <Button asChild size="lg" variant="outline" className="gap-2">
-                  <Link href="/books/sozler">
-                    <MessageCircle className="size-4" />
-                    Ask AI
-                  </Link>
-                </Button>
-              </div>
-              {/* Stats */}
-              <div className="flex gap-8 mt-12 justify-center lg:justify-start">
-                <div>
-                  <p className="text-2xl font-bold text-foreground">33+</p>
-                  <p className="text-sm text-muted-foreground">Treatises</p>
-                </div>
-                <div className="w-px bg-border" />
-                <div>
-                  <p className="text-2xl font-bold text-foreground">AI</p>
-                  <p className="text-sm text-muted-foreground">Powered</p>
-                </div>
-                <div className="w-px bg-border" />
-                <div>
-                  <p className="text-2xl font-bold text-foreground">24/7</p>
-                  <p className="text-sm text-muted-foreground">Available</p>
-                </div>
-              </div>
-            </div>
-            {/* Right side - Screenshot */}
-            <div className="relative lg:scale-150 lg:translate-x-8">
-              {/* Decorative frame */}
-              <div className="absolute -inset-4 bg-gradient-to-br from-primary/20 via-accent/20 to-primary/10 rounded-2xl blur-xl" />
-
-              {/* Screenshot container */}
-              <div className="relative bg-card rounded-xl border border-border shadow-2xl overflow-hidden">
-                {/* Screenshot */}
-                <div className="relative aspect-[4/3]">
-                  <Image
-                    src="/hero_image_muzakkir.png"
-                    alt="Muzakkir App - AI-powered Risale-i Nur reader"
-                    fill
-                    className="object-cover"
-                    priority
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
+            }
+          />
         </div>
       </section>
 
